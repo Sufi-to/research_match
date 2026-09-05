@@ -110,7 +110,7 @@ Only successfully reached datasets appear. Derived files are collection aids,
 not canonical Silver tables. Raw files and their manifest are the replay inputs.
 The manifest records request parameters, fetch time, payload checksum, bytes,
 record count where applicable, and paging cursors. API response pages can contain
-multiple records, which the future Bronze loader must split into individual rows.
+multiple records, which notebook 03 splits into individual Bronze rows.
 
 ## 4. Verify and upload
 
@@ -154,10 +154,12 @@ inputs are incomplete; rerun it when they finish. Its manifest records the upstr
 batch and checksum. The packager requires all three public sources to be complete
 across the supplied batches; optional institutional awards do not block packaging.
 
-The next implementation step is a Volume-to-Bronze loader. It will verify the
-manifest, split source pages into records, preserve lineage, and perform idempotent
-Delta writes. The existing direct OAI notebook remains an alternative; it does not
-read these landed files. No Databricks data has been loaded by this local collector.
+Next follow the [Volume-to-Bronze runbook](volume_to_bronze_runbook.md) using notebook
+03. It verifies the manifest, splits source pages into records, preserves lineage,
+and performs insert-only version merges. The two batches are now uploaded by the
+user under `/Volumes/workspace/researchmatch_bronze/landing/`; a live Delta load is
+still to be verified. The direct OAI notebook remains an alternative and does not
+read these landed files. The local collector itself never writes Databricks tables.
 
 ## 5. Institutional data, when available
 

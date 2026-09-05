@@ -19,7 +19,14 @@ python3 scripts/collect_sources.py --source all --batch data/landing/pilot-20260
 
 Downloads preserve original JSON, XML, and HTML. Reuse the same batch path to resume
 an interrupted run; choose a new path for a refresh. Data and secrets are ignored by
-Git. The current scripts collect locally and do not upload or modify Databricks.
+Git. The collection scripts run locally and do not upload or modify Databricks.
+
+## Load the uploaded collection
+
+The two batches are uploaded under `/Volumes/workspace/researchmatch_bronze/landing/`.
+Follow the [Volume-to-Bronze runbook](docs/volume_to_bronze_runbook.md): validate two
+OAI files, run the Bronze DDL if needed, load and repeat the sample, then load the
+complete collection. The loader defaults to validation only and needs no API key.
 
 ## Project files
 
@@ -28,12 +35,14 @@ Git. The current scripts collect locally and do not upload or modify Databricks.
 - [First collection report](docs/collection_report_2026-09-05.md): actual counts, coverage gaps, and local artifact locations.
 - [Institutional data contract](docs/institutional_data_contract.md): optional roster/award exports.
 - [Bronze DDL](sql/01_create_bronze_tables.sql): creates the 11 planned Bronze tables.
+- [Volume-to-Bronze notebook](notebooks/03_load_volume_to_bronze.py): validates manifested files and merges raw versions into Delta.
+- [Volume-to-Bronze runbook](docs/volume_to_bronze_runbook.md): exact settings, expected counts, validation, and recovery.
 - [Direct OAI notebook](notebooks/02_ingest_zu_scholars_oai.py): alternative direct API-to-Delta route.
 
-Next: review the collected roster/author candidates, create a managed landing Volume,
-and implement the manifest-driven Volume-to-Bronze loader.
+Next: complete the bounded Databricks load/repeat test, then the full Bronze load.
+Review collected roster/author candidates before building canonical Silver profiles.
 
-## Test the collector
+## Run offline tests
 
 ```sh
 python3 -m unittest discover -s tests -v

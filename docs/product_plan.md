@@ -627,18 +627,27 @@ Completed in local source collection:
 - created a verified transfer archive and recorded coverage gaps in
   [`collection_report_2026-09-05.md`](collection_report_2026-09-05.md).
 
-Still to implement:
+Completed for the Volume-to-Bronze route:
+
+- user uploaded both batches to `/Volumes/workspace/researchmatch_bronze/landing/`;
+- implemented a self-contained, manifest-driven notebook with checksum validation,
+  bounded load settings, insert-only version merges, and operational logs;
+- validated adapters against the complete local collection; live Delta execution
+  remains to be tested in the user's workspace.
+
+Still to implement or validate:
 
 - review pilot identity candidates and unresolved source references;
-- create a landing Volume and implement the manifest-driven Bronze loader;
+- run the bounded Bronze load/repeat test in Databricks, then load the full batch;
 - add Silver and Gold schemas described here;
 - change the Gold AI Search source to researcher profiles only.
 
 ## 17. Immediate next task
 
-The initial public-source batch has been collected and packaged. Implement Volume
-creation and the manifest-driven Volume-to-Bronze loader, then upload and load the
-batch. Run the Bronze DDL before loading Delta tables. Review the pilot roster and
+The initial public-source batches have been collected, packaged, and uploaded by
+the user. Follow [`volume_to_bronze_runbook.md`](volume_to_bronze_runbook.md) to
+validate, sample-load, repeat, and fully load them with notebook 03. Run the Bronze
+DDL before loading Delta tables. Review the pilot roster and
 author candidates before canonical Silver profiles are built. The existing direct
 OAI notebook remains available but is not the selected landing-file workflow.
 
