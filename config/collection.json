@@ -1,0 +1,17 @@
+{
+  "institution_id": "I91044093",
+  "oai_url": "https://zuscholars.zu.ac.ae/do/oai/",
+  "oai_set": "publication:works",
+  "metadata_prefix": "oai_dc",
+  "pilot_per_college": 25,
+  "colleges": [
+    {
+      "code": "CB",
+      "listing_url": "https://www.zu.ac.ae/main/en/colleges/colleges/__college_of_business/faculty_and_staff/index.aspx"
+    },
+    {
+      "code": "CTI",
+      "listing_url": "https://www.zu.ac.ae/main/en/colleges/colleges/__college_of_technological_innovation/faculty_and_staff/index.aspx"
+    }
+  ]
+}
