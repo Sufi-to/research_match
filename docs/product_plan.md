@@ -1,10 +1,21 @@
 # ResearchMatch AI — Product and Data Plan
 
 **Status:** Current source of truth  
-**Last updated:** 2026-08-20  
+**Last updated:** 2026-09-05
 **Platform:** Databricks Free Edition  
 
 This MVP builds evidence-based profiles of active Zayed University researchers and matches a user-supplied research topic to suitable ZU collaborators or a complementary research team.
+
+The first implementation milestone is a pilot of approximately 50 researchers across
+Business and Technological Innovation: enter a topic, retrieve five relevant ZU
+researchers, and inspect publication evidence for each. Historical awards are optional
+enrichment. Missing funding data must not be treated as zero funding or automatically
+lower a researcher's rank. Team assembly follows validated individual recommendations.
+
+The primary collection route is now external download to immutable source files,
+followed by upload to a managed Unity Catalog Volume and batch loading into Bronze.
+Preserve JSON/XML/HTML; use CSV for naturally tabular institutional exports. See
+[`data_collection_runbook.md`](data_collection_runbook.md) for the collector and batch contract.
 
 ## 1. Product outcome
 
@@ -59,10 +70,12 @@ For every topic query, the product should return:
 
 ```mermaid
 flowchart LR
-    A["ZU faculty roster and profiles"] --> B["Bronze raw Delta"]
-    C["ZU Scholars OAI-PMH"] --> B
-    D["OpenAlex authors, works, awards, funders"] --> B
-    E["Approved ZU grant export"] --> B
+    A["ZU faculty roster and profiles"] --> N["Local source files and manifest"]
+    C["ZU Scholars OAI-PMH"] --> N
+    D["OpenAlex authors, works, awards, funders"] --> N
+    E["Approved ZU grant export, optional"] --> N
+    N --> O["Managed Volume landing area"]
+    O --> B["Bronze raw Delta"]
 
     B --> F["Silver identities, works, topics, awards, relationships"]
     F --> G["Gold researcher profiles and evidence"]
@@ -342,14 +355,18 @@ Rerank AI Search candidates using transparent features. Initial weights are hypo
 
 | Component | Initial weight |
 |---|---:|
-| Semantic/hybrid retrieval relevance | 50% |
+| Semantic/hybrid retrieval relevance | 55% |
 | Direct structured topic overlap | 20% |
 | Recent relevant work | 10% |
 | Strength and number of relevant evidence works | 10% |
-| Relevant verified/evidenced grant experience | 5% |
+| Relevant verified/evidenced grant experience | 0% in the first pilot; display as optional evidence |
 | Profile completeness and identity confidence | 5% |
 
 Do not allow citations, h-index, rank, college, or grant amount to dominate matching. These signals are field-dependent and can introduce strong disciplinary bias.
+
+Profile completeness in the pilot must exclude missing funding data. Revisit any
+award-based ranking only after coverage is measured and missing data can be handled
+without treating unknown funding history as lack of experience.
 
 ### 9.3 Team assembly
 
@@ -412,12 +429,13 @@ Recommended MVP cadence:
 | Silver and Gold transforms | After successful source refreshes |
 | AI Search sync | Triggered after Gold quality checks pass |
 
-Use a sequential Databricks Workflow where possible to stay inside Free Edition limits:
+Run source downloaders outside Databricks, upload a completed manifest and source files
+to the landing Volume, then use a sequential Databricks Workflow:
 
-1. ingest roster/profile pages;
-2. ingest ZU Scholars;
-3. ingest targeted OpenAlex entities;
-4. ingest approved ZU awards;
+1. validate and load landed roster/profile pages;
+2. load landed ZU Scholars records;
+3. load landed OpenAlex entities;
+4. load approved ZU awards when available;
 5. build Silver identities and relationships;
 6. run data-quality gates;
 7. build Gold profiles/search documents;
@@ -443,7 +461,11 @@ Free Edition restricts outbound internet access to trusted domains. Before depen
 - `zuscholars.zu.ac.ae`;
 - `api.openalex.org`.
 
-If a source is blocked, use a controlled landing process: run the extractor from an approved environment, write immutable source files, upload them to a Unity Catalog volume, and load those files into Bronze Delta. Do not bypass workspace network controls.
+The selected implementation uses the controlled landing process as its primary route:
+run the extractor externally, write immutable source files, upload them to a Unity
+Catalog Volume, and load those files into Bronze Delta. Direct API ingestion inside
+Databricks remains an alternative. Local staging improves retryability; compute savings
+should be measured rather than assumed.
 
 ## 13. Data quality and evaluation
 
@@ -509,7 +531,9 @@ Exit criteria:
 Tasks:
 
 - revise the Bronze DDL for historical awards;
-- complete ZU faculty, OAI, OpenAlex, and award ingestion;
+- collect the two-college pilot, repository metadata, and targeted OpenAlex enrichment;
+- treat institutional awards as optional until an approved export exists;
+- implement manifest validation and Volume-to-Bronze loading;
 - implement run/error logging, hashes, retries, and idempotency;
 - complete initial full harvests.
 
@@ -556,7 +580,9 @@ Tasks:
 
 - enable Change Data Feed on the search-document table;
 - create the one standard endpoint and Delta Sync hybrid index;
-- implement candidate retrieval, reranking, filters, and team diversity;
+- implement candidate retrieval, simple reranking, and filters;
+- evaluate 15–20 representative topics using expert judgments of the top five results;
+- tune weights from evaluation, then implement complementary team suggestions;
 - return evidence with every match.
 
 Exit criteria:
@@ -594,14 +620,27 @@ Completed in the Bronze DDL:
 - added `zu_grant_awards_raw`;
 - added `openalex_awards_raw` and `openalex_funders_raw`.
 
+Completed in local source collection:
+
+- built resumable faculty, OAI, and OpenAlex downloaders with manifests and checksums;
+- collected the two-college pilot and associated public metadata;
+- created a verified transfer archive and recorded coverage gaps in
+  [`collection_report_2026-09-05.md`](collection_report_2026-09-05.md).
+
 Still to implement:
 
+- review pilot identity candidates and unresolved source references;
+- create a landing Volume and implement the manifest-driven Bronze loader;
 - add Silver and Gold schemas described here;
 - change the Gold AI Search source to researcher profiles only.
 
 ## 17. Immediate next task
 
-Run the revised Bronze DDL, then run the two-page ZU Scholars test, validate idempotency, and complete the initial OAI harvest. In parallel with obtaining the approved institutional award export, define its delivery contract; then implement the targeted OpenAlex institution, works, authors, awards, and funders ingestors.
+The initial public-source batch has been collected and packaged. Implement Volume
+creation and the manifest-driven Volume-to-Bronze loader, then upload and load the
+batch. Run the Bronze DDL before loading Delta tables. Review the pilot roster and
+author candidates before canonical Silver profiles are built. The existing direct
+OAI notebook remains available but is not the selected landing-file workflow.
 
 ## References
 

@@ -27,7 +27,7 @@ until Silver validation succeeds.
 |---|---|---|---|
 | ZU faculty website | College-specific `faculty_and_staff` HTML pages and linked profile pages | None | Authoritative fallback roster and profile descriptions |
 | ZU Scholars | `https://zuscholars.zu.ac.ae/do/oai/` | None | ZU publication metadata |
-| OpenAlex | `https://api.openalex.org` | Keyless testing; free API key recommended for ingestion | Publication, author, topic, affiliation, citation, and coauthor enrichment |
+| OpenAlex | `https://api.openalex.org` | Basic anonymous access; free key recommended for collection, read from local `.env` or environment | Publication, author, topic, affiliation, citation, and coauthor enrichment |
 | Zayed University in OpenAlex | OpenAlex `I91044093`; ROR `03snqfa66` | N/A | Exact institution filtering and affiliation validation |
 
 ## 1. ZU faculty data
@@ -179,7 +179,11 @@ Store one complete `<record>` element per row rather than one large response per
 
 ### Confirmed API behavior
 
-The API is JSON over GET endpoints. Lists return `meta`, `results`, and `group_by`. The supported maximum page size is 100; cursor paging is required beyond 10,000 results. A free API key increases the basic daily budget and should be stored in Databricks secrets.
+The API is JSON over GET endpoints. Lists return `meta`, `results`, and `group_by`.
+The supported maximum page size is 100; cursor paging is required beyond 10,000
+results. The local collector reads its free API key from `.env` or the environment
+and sends an Authorization header. Current authentication documentation, checked
+2026-09-05, permits basic anonymous access with a smaller allowance.
 
 The verified Zayed University institution record is:
 

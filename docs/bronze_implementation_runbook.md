@@ -1,5 +1,10 @@
 # Bronze implementation runbook
 
+> **Collection update (2026-09-05):** The primary route now collects source files outside
+> Databricks and uploads them to a Volume. Follow
+> [`data_collection_runbook.md`](data_collection_runbook.md) first. The direct OAI
+> notebook steps below are an alternative, not a loader for the new landed files.
+
 > **Scope notice:** See [`product_plan.md`](product_plan.md) for the current product
 > direction. The Bronze DDL is award-focused: it includes institutional ZU awards and
 > OpenAlex awards/funders.
