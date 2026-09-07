@@ -180,6 +180,10 @@ zero; use `status`, `error_message`, and `ingestion_errors` to detect failures.
 
 ## 7. Validation status and next milestone
 
+Update (2026-09-07): the user has confirmed successful full loads for all eight
+business datasets, no duplicate version keys, and successful exploration queries.
+The next implementation is available in [`silver_runbook.md`](silver_runbook.md).
+
 The adapters have passed local validation against both complete downloaded batches.
 Offline tests cover DDL contracts, adapters, integrity checks, version keys, buffer
 deduplication, and generated merge statements. Spark/Delta execution has **not**

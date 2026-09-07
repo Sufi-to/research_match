@@ -208,6 +208,18 @@ Bronze remains versioned and reprocessable. Store selected raw business payloads
 | `award_evidence` | One source assertion supporting or contradicting an award relationship |
 | `entity_resolution_review` | One ambiguous identity or award association requiring review |
 
+Silver v1 implementation adds `authors`, `work_sources`, `work_authorships`,
+`work_awards`, and `quality_issues` for structured source evidence and crosswalks.
+It also adds append-only `identity_decisions` and operational `build_runs`.
+Derived tables retain build snapshots; `*_current` views expose only the last
+fully successful build. See [`silver_runbook.md`](silver_runbook.md) for contracts,
+limits, and the exact review workflow.
+
+Initial researcher rows are the 50 downloaded profile anchors, not yet 50 verified
+distinct people. Roles and aliases at the same URL are consolidated. Cross-campus
+URL merges remain flagged for subsequent resolution. OAI-only and ambiguous-DOI
+works are retained without forcing identity or publication merges.
+
 Important Silver fields:
 
 - stable surrogate IDs independent of mutable names;
@@ -254,7 +266,10 @@ Recommended identity statuses:
 - `unmatched`
 - `rejected`
 
-Only `verified` and high-confidence `probable` links feed public profiles. Ambiguous links remain reviewable evidence.
+Only `verified` and high-confidence `probable` links may eventually feed public
+profiles. **Silver v1 uses the stricter verified-only rule:** all automatically
+generated candidates, including exact profile-ORCID matches, await explicit human
+review. Probable-link publication is not enabled. Ambiguous links remain evidence.
 
 ## 7. Inferring research interests
 
@@ -632,24 +647,38 @@ Completed for the Volume-to-Bronze route:
 - user uploaded both batches to `/Volumes/workspace/researchmatch_bronze/landing/`;
 - implemented a self-contained, manifest-driven notebook with checksum validation,
   bounded load settings, insert-only version merges, and operational logs;
-- validated adapters against the complete local collection; live Delta execution
-  remains to be tested in the user's workspace.
+- validated adapters against the complete local collection; the user subsequently
+  confirmed successful full Delta loads and duplicate-key checks in Databricks.
+
+Completed for Silver v1 (2026-09-07):
+
+- user confirmed successful full Bronze loads and no duplicate version keys;
+- implemented SQL 04, a self-contained default-validate notebook 05, and review SQL 06;
+- added explicit identity decisions, conservative DOI-based enrichment, raw-source
+  authorships, topic evidence, and unresolved award links without personal grant claims;
+- added successful-build publication views, resource guards, offline tests, and a
+  complete local collection replay (50 profile anchors, 123 identity candidates,
+  13,557 work records before identity approval);
+- retained retracted records but excluded them from positive expertise evidence.
 
 Still to implement or validate:
 
 - review pilot identity candidates and unresolved source references;
-- run the bounded Bronze load/repeat test in Databricks, then load the full batch;
-- add Silver and Gold schemas described here;
+- execute and verify the Silver validate/build/repeat sequence in Databricks;
+- approve a reviewed subset of researcher–OpenAlex links and verify derived relationships;
+- resolve remaining cross-campus profile duplicates and ambiguous work/identity mappings;
+- implement approved institutional awards and researcher-award attribution when available;
+- add Gold schemas described here;
 - change the Gold AI Search source to researcher profiles only.
 
 ## 17. Immediate next task
 
-The initial public-source batches have been collected, packaged, and uploaded by
-the user. Follow [`volume_to_bronze_runbook.md`](volume_to_bronze_runbook.md) to
-validate, sample-load, repeat, and fully load them with notebook 03. Run the Bronze
-DDL before loading Delta tables. Review the pilot roster and
-author candidates before canonical Silver profiles are built. The existing direct
-OAI notebook remains available but is not the selected landing-file workflow.
+The public-source batches are loaded in Bronze. Follow
+[`silver_runbook.md`](silver_runbook.md) to run SQL 04, validate/build with notebook
+05, and inspect identity candidates using SQL 06. The initial graph intentionally
+has no researcher–work links until identities are explicitly approved. After
+review, rebuild Silver and verify evidence before creating Gold or AI Search.
+The existing direct OAI notebook remains available but is not the selected workflow.
 
 ## References
 

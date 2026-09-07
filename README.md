@@ -38,9 +38,14 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Volume-to-Bronze notebook](notebooks/03_load_volume_to_bronze.py): validates manifested files and merges raw versions into Delta.
 - [Volume-to-Bronze runbook](docs/volume_to_bronze_runbook.md): exact settings, expected counts, validation, and recovery.
 - [Direct OAI notebook](notebooks/02_ingest_zu_scholars_oai.py): alternative direct API-to-Delta route.
+- [Silver DDL](sql/04_create_silver_tables.sql): build snapshots, current views, and human identity decisions.
+- [Silver builder](notebooks/05_build_silver.py): default validate-only transformation of existing Bronze data.
+- [Silver review SQL](sql/06_review_silver.sql): read-only exploration and identity evidence.
+- [Silver runbook](docs/silver_runbook.md): run order, expected counts, review decisions, and limits.
 
-Next: complete the bounded Databricks load/repeat test, then the full Bronze load.
-Review collected roster/author candidates before building canonical Silver profiles.
+Bronze has been successfully loaded in Databricks and explored by the user. Next:
+run SQL 04, validate/build with notebook 05, then review identity candidates using
+SQL 06. Silver researcher–work links require explicit identity approval.
 
 ## Run offline tests
 
