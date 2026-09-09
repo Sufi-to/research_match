@@ -6,6 +6,7 @@ one source table's latest raw versions at a time; the notebook uses Spark iterat
 import argparse
 import importlib.util
 import json
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -22,6 +23,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--landing-path", default=str(ROOT / "data/landing"))
     parser.add_argument("--batch-folders", default="pilot-20260905,openalex-20260905")
+    parser.add_argument("--identity-decisions-json", type=Path,
+                        help="Optional local decision list for simulation only; never uploads/records approvals")
     args = parser.parse_args()
     bronze = module("bronze", ROOT / "notebooks/03_load_volume_to_bronze.py")
     silver = module("silver", ROOT / "notebooks/05_build_silver.py")
@@ -44,10 +47,30 @@ def main():
             yield latest.pop(entity)[1]
 
     reader, totals = silver.bounded_read(read)
-    graph = silver.build_graph(reader)
+    decisions = []
+    if args.identity_decisions_json:
+        decisions = json.loads(args.identity_decisions_json.read_text())
+        if not isinstance(decisions, list):
+            raise ValueError("Local decision simulation requires a JSON list")
+        for row in decisions:
+            row["reviewed_at"] = datetime.fromisoformat(row["reviewed_at"])
+    graph = silver.build_graph(reader, decisions)
     works = graph.rows("works")
     candidates = graph.rows("entity_resolution_review")
-    report = {"input": totals, "counts": {t: len(rows) for t, rows in graph.tables.items()},
+    researchers = {r["researcher_id"]: r["display_name"] for r in graph.rows("researchers")}
+    researcher_counts = []
+    for rid, name in sorted(researchers.items(), key=lambda pair: pair[1]):
+        links = [r for r in graph.rows("researcher_works") if r["researcher_id"] == rid]
+        contributions = [r for r in graph.rows("researcher_contributions") if r["researcher_id"] == rid]
+        if links:
+            researcher_counts.append({"name": name, "source_links": len(links),
+                "contributions": len(contributions),
+                "eligible_contributions": sum(r["eligible_for_expertise"] for r in contributions)})
+    report = {"local_decision_simulation": bool(args.identity_decisions_json),
+              "input": totals, "counts": {t: len(rows) for t, rows in graph.tables.items()},
+              "identity_statuses": {status: sum(c["status"] == status for c in candidates)
+                                    for status in ("pending", "verified", "rejected")},
+              "researcher_counts": researcher_counts,
               "output_estimated_bytes": graph.byte_count,
               "identity_methods": {method: sum(c["match_method"] == method for c in candidates)
                                    for method in ("profile_orcid", "exact_normalized_name", "name_tokens")},

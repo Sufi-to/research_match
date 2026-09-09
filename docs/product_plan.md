@@ -673,17 +673,24 @@ Still to implement or validate:
 
 ## 17. Immediate next task
 
-As of the user-confirmed results recorded on 2026-09-09, Bronze and Silver are built.
-The latest successful Silver build is `5fb6b85e-4bde-42ae-b237-cb8a396f6a81`:
-2 verified candidates (Abdallah Tubaishat and Ahed Abugabah), 121 pending,
-151 researcher–work links and 232 researcher-topic rows. Abdallah has 72 eligible
-records; Ahed has 77 of 79 eligible. The two excluded records are a retracted
-article and its notice. Researcher-award attribution remains empty intentionally.
+The latest user-confirmed successful Silver build is
+`a5f7a124-429b-431c-b4b4-1f913b1e4e7f`: 7 verified candidates, 116 pending,
+440 researcher–work links (438 eligible) and 534 researcher-topic rows. The user
+also confirmed zero shared eligible work IDs among those profiles. Researcher-award
+attribution remains empty intentionally.
 
-Follow [`identity_review_batch_02.md`](identity_review_batch_02.md) to preview five
-more proposed ORCID matches in SQL 07. Approval defaults to disabled and requires
-the user's explicit review. Rebuild using notebook 05 after recording decisions,
-then inspect topic support and publication/version types before Gold or AI Search.
+On 2026-09-10, Silver v2 was implemented and tested locally to resolve Dima's two
+Zenodo DOI records as one contribution using reciprocal DataCite version evidence.
+Both source records remain preserved. The local replay with simulated versions of
+the seven user-confirmed approvals produced 439 researcher-contribution groups,
+437 eligible groups, 534 topic rows, and 25 quality issues (one new informational
+alias issue). This is not a claim of a completed Databricks v2 run.
+
+Follow [`publication_versions.md`](publication_versions.md): rerun updated SQL 04,
+import updated notebook 05, validate/build, then run read-only SQL 08. Do not rerun
+identity approvals or Bronze ingestion. Afterwards build a seven-profile Gold pilot
+using contribution counts and evidence eligibility/type labels; do not advertise
+unreviewed profiles as verified matches or preprints as peer-reviewed articles.
 Hold ambiguous split author IDs and cross-campus profile duplicates for separate
 review. Profile grant statements are a future evidence-extraction task, not grounds
 to populate verified researcher-award rows automatically.

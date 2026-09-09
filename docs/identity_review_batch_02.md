@@ -1,8 +1,11 @@
 # Identity review batch 02 — 2026-09-09
 
-Status: **five recommended matches; no approvals recorded by this work**.
-The reviewer must deliberately approve the batch in Databricks. This is a review
-of the September 5 collection, not a fresh check of live websites.
+Status: **completed by the user in Databricks**. The subsequent successful build
+`a5f7a124-429b-431c-b4b4-1f913b1e4e7f` has seven verified identities, 116 pending,
+440 researcher–work links and 534 researcher-topic rows. No approvals were recorded
+by local tooling. The original review and instructions below are retained for audit;
+do not repeat approval for the publication-version upgrade.
+This reviews the September 5 collection, not a fresh check of live websites.
 
 ## Current checkpoint
 
@@ -62,6 +65,8 @@ the identity link; it does not independently validate every paper or its finding
   career publications. Two chatbot benchmark records have closely related Zenodo
   DOIs (`10.5281/zenodo.18509542`, `10.5281/zenodo.18509541`); inspect their
   version relationship and publication type before Gold presents study counts.
+  **Resolved subsequently:** DataCite confirms concept/version linkage; see
+  [the Silver v2 correction](publication_versions.md).
 - **Fatma Outay:** the ZU profile describes wireless/mobile networks, IoT, smart
   cities and connected mobility. *Behavioural Modelling of Automated Driving Logic
   for Advanced Driver Assistance Systems at Signalised Intersections Using

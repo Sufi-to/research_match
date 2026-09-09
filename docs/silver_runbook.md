@@ -1,9 +1,15 @@
-# ResearchMatch Silver v1
+# ResearchMatch Silver
 
-Silver v1 structures the existing Bronze collection and introduces governed identity
+Silver structures the existing Bronze collection and introduces governed identity
 review. It is a bounded, on-demand Free Edition pilot, not a continuously running
 pipeline. There are no API calls, new downloads, packages to install, AI Search
 resources, or Lakebase dependencies at this stage.
+
+**Upgrading an existing build:** follow [Silver v2 publication-version handling](publication_versions.md).
+The user has already confirmed seven identities and a successful v1 build. Updated
+SQL 04 adds three tables/views without replacing existing data; notebook 05 v2
+uses contribution-level scoring. SQL 08 verifies the upgrade. Do not repeat Bronze
+loading or identity approval to apply this change.
 
 ## 1. Run order in Databricks
 
@@ -11,7 +17,7 @@ resources, or Lakebase dependencies at this stage.
    must be `succeeded`, not `started`, `failed`, or a bounded `partial` test.
 2. Import `sql/04_create_silver_tables.sql` into Workspace as a SQL notebook.
    Select serverless compute and run all cells. It creates a new
-   `workspace.researchmatch_silver` schema, 22 Delta tables, and 21 views.
+   `workspace.researchmatch_silver` schema, 25 Delta tables, and 24 views.
    It does not replace existing tables or touch Bronze.
 3. Import `notebooks/05_build_silver.py` as a Python notebook and select serverless.
 4. Run all cells with the defaults below. The first run creates the widgets and
@@ -49,15 +55,16 @@ build succeeds.
 | `authors`, `entity_resolution_review` | Latest OpenAlex author snapshots and unapproved/approved/rejected identity candidates |
 | `works`, `work_sources`, `work_authorships` | Provisionally consolidated publications, source crosswalk, and source-reported authorships |
 | `researcher_works` | Authorships attached to a pilot researcher only through an accepted identity decision |
+| `work_version_relationships`, `work_contributions`, `researcher_contributions` | Reviewed concept/version provenance, preserved-work mappings and contribution-level researcher evidence |
 | `topics`, `work_topics`, `researcher_topic_scores`, `coauthor_edges` | Topic hierarchy, publication evidence, provisional scoring, and collaboration between verified pilot researchers |
 | `funders`, `awards`, `work_awards`, `award_evidence`, `researcher_awards` | External funding evidence; no automatic attribution of funding to researchers |
 | `quality_issues` | Reviewable layout, identity, DOI, and evidence issues |
 | `identity_decisions` | Append-only human review input; never overwritten by the builder |
 | `build_runs` | Build status, frozen source versions, input fingerprint, output counts, and failures during writing |
 
-There are 20 derived tables and two control/input tables. Each derived table has
+There are 23 derived tables and two control/input tables. Each derived table has
 `build_id` and `row_key`. The `current_build` view selects the last fully successful
-build; the 20 `*_current` views select only rows belonging to that build.
+build; the 23 `*_current` views select only rows belonging to that build.
 
 The 50 initial `researchers` rows are **profile-anchored pilot candidates**, not a
 claim that we have verified 50 distinct people. We consolidate roles/names at the
@@ -67,11 +74,11 @@ directory entry into a searchable researcher.
 
 ## 3. Identity review: required before researcher–work links appear
 
-**Current checkpoint (user-confirmed, recorded 2026-09-09):** the build and first
-two approvals succeeded: 2 verified, 121 pending, 151 researcher–work links and
-232 topic-score rows. Continue with [identity batch 02](identity_review_batch_02.md)
-and its default-disabled SQL 07. The initial zero-link description below explains
-first-build behaviour, not the current result. SQL 06 remains read-only.
+**Current user-confirmed checkpoint:** batch 02 succeeded: 7 verified, 116 pending,
+440 researcher–work links and 534 topic-score rows. The next step is the
+[version-handling upgrade](publication_versions.md), not another approval run.
+The initial zero-link description below explains first-build behaviour, not the
+current result. SQL 06 and SQL 08 are read-only.
 
 The first build intentionally has:
 
@@ -150,6 +157,9 @@ does not establish current employment or appointment dates.
   these before constructing Gold search text.
 - Do not merge on similar titles. Multiple OpenAlex work IDs sharing a DOI are
   retained and flagged; their expertise eligibility is disabled pending resolution.
+- Silver v2 additionally groups the explicitly reviewed Zenodo concept/version pair
+  described in [publication_versions.md](publication_versions.md). Source work IDs
+  remain unchanged. Unreviewed different-DOI records are not automatically grouped.
 - Keep unmatched OAI publications with OAI-based IDs. Multiple unresolved records
   sharing a DOI are flagged, not forcibly merged. Work IDs can change across builds
   when a previously OAI-only record gains a unique OpenAlex match; `work_sources`
@@ -167,7 +177,7 @@ from both the Business heading layout and CTI tabbed layout.
 ## 5. Topics and funding
 
 OpenAlex topic scores remain source assertions. The provisional researcher-topic
-score is the sum, over eligible verified publications, of:
+score is the sum, over eligible verified contribution representatives, of:
 
 ```text
 source_topic_score × 0.5^(publication_age / 5) ÷ source_author_count
@@ -176,6 +186,10 @@ source_topic_score × 0.5^(publication_age / 5) ÷ source_author_count
 Unknown publication years use a recency weight of 0.5; future dates within the
 accepted year range use age zero. The scoring year and scoring version are stored.
 This downweights large collaborations but is not a calibrated relevance score.
+In v2, `supporting_work_count` counts distinct contribution IDs. Only the chosen
+representative's topic evidence is scored; concept aliases are not scored again.
+Use `researcher_contributions_current` for Gold contribution totals, preserving
+publication-type labels (including preprints) and separating ineligible records.
 OAI subjects and profile research text are retained separately for later Gold use.
 Coauthor edges connect only verified pilot researchers on eligible shared works;
 they are not the full global coauthor network.

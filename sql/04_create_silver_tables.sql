@@ -1,6 +1,7 @@
 -- Databricks notebook source
--- ResearchMatch Silver v1: immutable build snapshots and governed review inputs.
--- Run once before notebook 05. No Bronze data is changed.
+-- ResearchMatch Silver v2: immutable build snapshots and governed review inputs.
+-- Run before notebook 05, including upgrades. IF NOT EXISTS preserves all data.
+-- v2 adds three tables/views; existing schemas and identity decisions are unchanged.
 USE CATALOG workspace;
 CREATE SCHEMA IF NOT EXISTS researchmatch_silver COMMENT 'Structured research evidence and reviewed identity links';
 USE SCHEMA researchmatch_silver;
@@ -353,6 +354,55 @@ JOIN current_build b ON t.build_id = b.build_id;
 -- COMMAND ----------
 CREATE VIEW IF NOT EXISTS quality_issues_current AS
 SELECT t.* FROM quality_issues t
+JOIN current_build b ON t.build_id = b.build_id;
+-- COMMAND ----------
+CREATE TABLE IF NOT EXISTS work_version_relationships (
+  build_id STRING NOT NULL,
+  row_key STRING NOT NULL,
+  relationship_id STRING NOT NULL,
+  concept_work_id STRING NOT NULL,
+  version_work_id STRING NOT NULL,
+  concept_doi STRING NOT NULL,
+  version_doi STRING NOT NULL,
+  relation_type STRING NOT NULL,
+  evidence_json STRING NOT NULL,
+  evidence_sha256 STRING NOT NULL,
+  source_urls ARRAY<STRING> NOT NULL,
+  checked_on STRING NOT NULL
+) USING DELTA;
+-- COMMAND ----------
+CREATE TABLE IF NOT EXISTS work_contributions (
+  build_id STRING NOT NULL,
+  row_key STRING NOT NULL,
+  work_id STRING NOT NULL,
+  contribution_id STRING NOT NULL,
+  representative_work_id STRING NOT NULL,
+  is_representative BOOLEAN NOT NULL,
+  relationship_id STRING,
+  verification_status STRING NOT NULL
+) USING DELTA;
+-- COMMAND ----------
+CREATE TABLE IF NOT EXISTS researcher_contributions (
+  build_id STRING NOT NULL,
+  row_key STRING NOT NULL,
+  researcher_id STRING NOT NULL,
+  contribution_id STRING NOT NULL,
+  representative_work_id STRING NOT NULL,
+  source_work_ids ARRAY<STRING> NOT NULL,
+  eligible_for_expertise BOOLEAN NOT NULL,
+  publication_type STRING
+) USING DELTA;
+-- COMMAND ----------
+CREATE VIEW IF NOT EXISTS work_version_relationships_current AS
+SELECT t.* FROM work_version_relationships t
+JOIN current_build b ON t.build_id = b.build_id;
+-- COMMAND ----------
+CREATE VIEW IF NOT EXISTS work_contributions_current AS
+SELECT t.* FROM work_contributions t
+JOIN current_build b ON t.build_id = b.build_id;
+-- COMMAND ----------
+CREATE VIEW IF NOT EXISTS researcher_contributions_current AS
+SELECT t.* FROM researcher_contributions t
 JOIN current_build b ON t.build_id = b.build_id;
 -- COMMAND ----------
 SHOW TABLES IN workspace.researchmatch_silver;

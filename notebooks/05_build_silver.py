@@ -4,6 +4,8 @@
 # MAGIC Run SQL 04 first. Default mode is **validate**: no Delta writes.
 # MAGIC Set widget execution behavior to **Do Nothing** before changing settings.
 # MAGIC Only human-accepted identity decisions create researcher–work links.
+# MAGIC v2 adds reviewed DOI version relationships and contribution-level counts/scoring.
+# MAGIC Re-run updated SQL 04 before this version; do not rerun identity approvals.
 # MAGIC Read `docs/silver_runbook.md`. Run one build at a time; no API calls/packages.
 
 # COMMAND ----------
@@ -22,12 +24,39 @@ from datetime import datetime, timezone
 from urllib.parse import unquote, urlsplit, urlunsplit
 import xml.etree.ElementTree as ET
 
-TRANSFORM_VERSION = "silver_v1"
+TRANSFORM_VERSION = "silver_v2_concept_versions"
 ZU_ID = "https://openalex.org/I91044093"
 MAX_INPUT_ROWS = 60000
 MAX_INPUT_BYTES = 512 * 1024 * 1024
 MAX_OUTPUT_ROWS = 500000
 MAX_OUTPUT_BYTES = 256 * 1024 * 1024
+
+# Curated reference evidence, not a live API feed or a title-matching heuristic.
+# These are selected DataCite response fields, not complete raw API responses.
+# See docs/publication_versions.md. Changes are included in the build fingerprint.
+# Only reviewed concept/version aliases are supported; no automatic version chains.
+REVIEWED_WORK_VERSIONS = [{
+    "kind": "zenodo_concept_alias",
+    "concept_work_id": "oa:W7128068710",
+    "version_work_id": "oa:W7128031808",
+    "expected_title": "Benchmark Evaluation of a Cannabinoid Drug Interaction Chatbot",
+    "publication_type": "preprint",
+    "checked_on": "2026-09-09",
+    "concept": {
+        "doi": "10.5281/zenodo.18509541",
+        "relatedIdentifiers": [{"relationType": "HasVersion",
+                                "relatedIdentifier": "10.5281/zenodo.18509542",
+                                "relatedIdentifierType": "DOI"}],
+    },
+    "version": {
+        "doi": "10.5281/zenodo.18509542",
+        "relatedIdentifiers": [{"relationType": "IsVersionOf",
+                                "relatedIdentifier": "10.5281/zenodo.18509541",
+                                "relatedIdentifierType": "DOI"}],
+    },
+    "source_urls": ["https://api.datacite.org/dois/10.5281/zenodo.18509541",
+                    "https://api.datacite.org/dois/10.5281/zenodo.18509542"],
+}]
 
 # Every derived table has build_id + row_key; the remaining contract is below.
 # ! means NOT NULL. Business rows are immutable within a completed build.
@@ -42,6 +71,9 @@ CONTRACTS = {
     "work_sources": "work_id:string! source_system:string! source_id:string! doi:string source_title:string match_method:string! is_deleted:boolean! source_record_keys:array<string>!",
     "work_authorships": "work_id:string! source_system:string! source_id:string! author_position:int! openalex_author_id:string raw_author_name:string author_orcid:string institution_ids:array<string>! is_corresponding:boolean! source_record_keys:array<string>!",
     "researcher_works": "researcher_id:string! work_id:string! openalex_author_ids:array<string>! candidate_ids:array<string>! verification_status:string! eligible_for_expertise:boolean! source_record_keys:array<string>!",
+    "work_version_relationships": "relationship_id:string! concept_work_id:string! version_work_id:string! concept_doi:string! version_doi:string! relation_type:string! evidence_json:string! evidence_sha256:string! source_urls:array<string>! checked_on:string!",
+    "work_contributions": "work_id:string! contribution_id:string! representative_work_id:string! is_representative:boolean! relationship_id:string verification_status:string!",
+    "researcher_contributions": "researcher_id:string! contribution_id:string! representative_work_id:string! source_work_ids:array<string>! eligible_for_expertise:boolean! publication_type:string",
     "topics": "topic_id:string! display_name:string subfield_name:string field_name:string domain_name:string source_record_keys:array<string>!",
     "work_topics": "work_id:string! topic_id:string! score:double! is_primary:boolean! source_record_keys:array<string>!",
     "researcher_topic_scores": "researcher_id:string! topic_id:string! score:double! supporting_work_count:bigint! scoring_version:string! as_of_year:int!",
@@ -271,7 +303,84 @@ class Graph:
         return list(self.tables[table].values())
 
 
-def build_graph(read, decisions=(), build_id="validation", as_of_year=2026):
+def apply_work_versions(g, works, evidence_rows):
+    """Apply only reviewed concept aliases, preserving work IDs and source rows.
+
+    Fail closed if a reviewed pair changes or becomes incomplete. No authorship,
+    topics or award links are copied between the two records.
+    """
+    memberships = {}
+    reserved_dois = set()
+    for evidence in evidence_rows:
+        concept, version = evidence["concept"], evidence["version"]
+        cd, vd = normalize_doi(concept["doi"]), normalize_doi(version["doi"])
+        def has_relation(node, relation, target):
+            return any(r.get("relationType") == relation and r.get("relatedIdentifierType") == "DOI"
+                       and normalize_doi(r.get("relatedIdentifier")) == target
+                       for r in node.get("relatedIdentifiers", []))
+        if (evidence["kind"] != "zenodo_concept_alias" or not cd or not vd or cd == vd
+                or not cd.startswith("10.5281/zenodo.") or not vd.startswith("10.5281/zenodo.")
+                or not has_relation(concept, "HasVersion", vd)
+                or not has_relation(version, "IsVersionOf", cd)
+                or set(evidence["source_urls"]) != {"https://api.datacite.org/dois/" + cd,
+                                                     "https://api.datacite.org/dois/" + vd}):
+            raise ValueError("Invalid reciprocal concept/version evidence")
+        datetime.strptime(evidence["checked_on"], "%Y-%m-%d")
+        if reserved_dois.intersection((cd, vd)):
+            raise ValueError("Overlapping version rules or chains require separate review")
+        reserved_dois.update((cd, vd))
+        cids = [wid for wid, w in works.items() if w["doi"] == cd]
+        vids = [wid for wid, w in works.items() if w["doi"] == vd]
+        if (not cids and not vids and evidence["concept_work_id"] not in works
+                and evidence["version_work_id"] not in works):
+            continue  # An unrelated dataset/fixture need not contain this pilot pair.
+        if cids != [evidence["concept_work_id"]] or vids != [evidence["version_work_id"]]:
+            raise ValueError("Reviewed version pair is missing or ambiguous; review source IDs/DOIs before rebuilding")
+        cw, vw = works[cids[0]], works[vids[0]]
+        if any(normalized_name(w["title"]) != normalized_name(evidence["expected_title"])
+               or w["publication_type"] != evidence["publication_type"] for w in (cw, vw)):
+            raise ValueError("Reviewed version title/type changed; review current evidence before rebuilding")
+        relation_id = key("concept_version", cd, vd)
+        payload = js(evidence)
+        g.put("work_version_relationships", relation_id, relationship_id=relation_id,
+              concept_work_id=cw["work_id"], version_work_id=vw["work_id"],
+              concept_doi=cd, version_doi=vd, relation_type="concept_has_version",
+              evidence_json=payload, evidence_sha256=hashlib.sha256(payload.encode()).hexdigest(),
+              source_urls=sorted(evidence["source_urls"]), checked_on=evidence["checked_on"])
+        for work in (cw, vw):
+            memberships[work["work_id"]] = ("doi:" + cd, vw["work_id"], relation_id)
+        cw["eligible_for_expertise"] = False
+        cw["quality_flags"] = sorted(set(cw["quality_flags"]) | {"concept_doi_alias"})
+        g.issue("work", cw["work_id"], "concept_doi_alias",
+                "Preserved source record; use version " + vw["work_id"] + " once for expertise/counts",
+                cw["source_record_keys"], "info")
+        # Never let a clean-looking alias circumvent a retraction on either record.
+        if cw["is_retracted"] or vw["is_retracted"]:
+            vw["eligible_for_expertise"] = False
+            vw["quality_flags"] = sorted(set(vw["quality_flags"]) | {"version_family_retraction"})
+    for wid in sorted(works):
+        cid, representative, relation = memberships.get(wid, (wid, wid, None))
+        g.put("work_contributions", wid, work_id=wid, contribution_id=cid,
+              representative_work_id=representative, is_representative=wid == representative,
+              relationship_id=relation,
+              verification_status="verified_concept_version" if relation else "source_record_only")
+
+
+def build_researcher_contributions(g, works):
+    mapping = {r["work_id"]: r for r in g.rows("work_contributions")}
+    grouped = defaultdict(list)
+    for link in g.rows("researcher_works"):
+        grouped[(link["researcher_id"], mapping[link["work_id"]]["contribution_id"])].append(link)
+    for (rid, cid), links in grouped.items():
+        representative = mapping[links[0]["work_id"]]["representative_work_id"]
+        # A concept authorship alone never establishes authorship of its version.
+        eligible = any(l["work_id"] == representative and l["eligible_for_expertise"] for l in links)
+        g.put("researcher_contributions", [rid, cid], researcher_id=rid, contribution_id=cid,
+              representative_work_id=representative, source_work_ids=sorted(l["work_id"] for l in links),
+              eligible_for_expertise=eligible, publication_type=works[representative]["publication_type"])
+
+
+def build_graph(read, decisions=(), build_id="validation", as_of_year=2026, version_evidence=None):
     """read(table) yields latest Bronze rows at frozen source versions, not API pages.
 
     Deliberately bounded Python pilot: retains structured output, not all raw payloads.
@@ -568,11 +677,13 @@ def build_graph(read, decisions=(), build_id="validation", as_of_year=2026):
               field_name=clean((topic.get("field") or {}).get("display_name")),
               domain_name=clean((topic.get("domain") or {}).get("display_name")),
               source_record_keys=sorted(topic_sources[tid]))
+    apply_work_versions(g, works, REVIEWED_WORK_VERSIONS if version_evidence is None else version_evidence)
     for (rid, wid), evidence in author_work_links.items():
         g.put("researcher_works", [rid, wid], researcher_id=rid, work_id=wid,
               openalex_author_ids=sorted({a for a, _, _ in evidence}), candidate_ids=sorted({c for _, c, _ in evidence}),
               verification_status="verified", eligible_for_expertise=works[wid]["eligible_for_expertise"],
               source_record_keys=sorted({s for _, _, s in evidence}))
+    build_researcher_contributions(g, works)
 
     funders = {}
     for row in read("openalex_funders_raw"):
@@ -617,20 +728,20 @@ def build_graph(read, decisions=(), build_id="validation", as_of_year=2026):
             author_count[item["work_id"]] += 1
     scores = defaultdict(lambda: [0.0, set()])
     researchers_by_work = defaultdict(set)
-    for link in g.rows("researcher_works"):
+    for link in g.rows("researcher_contributions"):
         if not link["eligible_for_expertise"]:
             continue
-        rid, wid = link["researcher_id"], link["work_id"]
+        rid, wid = link["researcher_id"], link["representative_work_id"]
         researchers_by_work[wid].add(rid)
         year = works[wid]["publication_year"]
         recency = 0.5 if year is None else 0.5 ** (max(0, as_of_year - year) / 5.0)
         for topic in topics_by_work[wid]:
             entry = scores[(rid, topic["topic_id"])]
             entry[0] += topic["score"] * recency / max(1, author_count[wid])
-            entry[1].add(wid)
+            entry[1].add(link["contribution_id"])
     for (rid, tid), (score, supporting) in scores.items():
         g.put("researcher_topic_scores", [rid, tid], researcher_id=rid, topic_id=tid, score=float(score),
-              supporting_work_count=len(supporting), scoring_version="v1_half_life5_fractional_authorship",
+              supporting_work_count=len(supporting), scoring_version="v2_contribution_half_life5_fractional_authorship",
               as_of_year=as_of_year)
     edges = defaultdict(set)
     for wid, ids in researchers_by_work.items():
@@ -661,6 +772,12 @@ def validate_graph(g):
         ("entity_resolution_review", "researcher_id", researchers),
         ("researcher_works", "researcher_id", researchers),
         ("researcher_works", "work_id", works),
+        ("work_contributions", "work_id", works),
+        ("work_contributions", "representative_work_id", works),
+        ("work_version_relationships", "concept_work_id", works),
+        ("work_version_relationships", "version_work_id", works),
+        ("researcher_contributions", "researcher_id", researchers),
+        ("researcher_contributions", "representative_work_id", works),
         ("work_sources", "work_id", works), ("work_authorships", "work_id", works),
         ("work_topics", "work_id", works), ("work_topics", "topic_id", topics),
         ("work_awards", "work_id", works),
@@ -674,6 +791,34 @@ def validate_graph(g):
     eligible = {r["work_id"] for r in g.rows("works") if r["eligible_for_expertise"]}
     if any(r["eligible_for_expertise"] and r["work_id"] not in eligible for r in g.rows("researcher_works")):
         raise ValueError("Ineligible work entered expertise evidence")
+    mappings = {r["work_id"]: r for r in g.rows("work_contributions")}
+    if set(mappings) != works:
+        raise ValueError("Every work requires exactly one contribution mapping")
+    relations = ids("work_version_relationships", "relationship_id")
+    for wid, mapping in mappings.items():
+        representative = mapping["representative_work_id"]
+        if (mappings[representative]["contribution_id"] != mapping["contribution_id"]
+                or not mappings[representative]["is_representative"]
+                or mapping["is_representative"] != (wid == representative)
+                or (mapping["relationship_id"] is not None and mapping["relationship_id"] not in relations)):
+            raise ValueError("Invalid contribution representative or relationship provenance")
+        if wid in eligible and not mapping["is_representative"]:
+            raise ValueError("A version alias cannot enter expertise evidence")
+    links = {(r["researcher_id"], r["work_id"]): r for r in g.rows("researcher_works")}
+    expected_members = defaultdict(set)
+    for rid, wid in links:
+        expected_members[(rid, mappings[wid]["contribution_id"])].add(wid)
+    actual_keys = {(r["researcher_id"], r["contribution_id"]) for r in g.rows("researcher_contributions")}
+    if actual_keys != set(expected_members):
+        raise ValueError("Researcher contributions must cover every verified source link")
+    for row in g.rows("researcher_contributions"):
+        rid, representative = row["researcher_id"], row["representative_work_id"]
+        if set(row["source_work_ids"]) != expected_members[(rid, row["contribution_id"])] or any((rid, wid) not in links or
+                mappings[wid]["contribution_id"] != row["contribution_id"] or
+                mappings[wid]["representative_work_id"] != representative for wid in row["source_work_ids"]):
+            raise ValueError("Contribution lacks verified source authorship/mapping")
+        if row["eligible_for_expertise"] and not links.get((rid, representative), {}).get("eligible_for_expertise"):
+            raise ValueError("Contribution cannot inherit representative authorship or eligibility")
     approved = {r["candidate_id"]: r for r in g.rows("entity_resolution_review") if r["status"] == "verified"}
     for link in g.rows("researcher_works"):
         if not link["candidate_ids"] or any(cid not in approved or approved[cid]["researcher_id"] != link["researcher_id"]
@@ -819,7 +964,7 @@ def run_notebook(spark, dbutils):
     if missing:
         raise ValueError("Complete full Bronze loads first: " + ", ".join(sorted(missing)))
     # Operational log-only changes do not change the derived research graph.
-    fingerprint = key(TRANSFORM_VERSION, catalog, bronze, silver,
+    fingerprint = key(TRANSFORM_VERSION, REVIEWED_WORK_VERSIONS, catalog, bronze, silver,
                       {k: v for k, v in versions.items() if k != "ingestion_runs"}, year, expected_profiles)
     runs = qualified(catalog, silver, "build_runs")
     if mode == "build":

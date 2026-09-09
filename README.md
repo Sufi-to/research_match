@@ -44,11 +44,15 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Silver runbook](docs/silver_runbook.md): run order, expected counts, review decisions, and limits.
 - [Identity batch 02](docs/identity_review_batch_02.md): evidence for five more proposed matches and approval instructions.
 - [Guarded identity review SQL](sql/07_review_identity_batch_02.sql): previews by default; records only deliberately enabled, checked approvals.
+- [Publication-version upgrade](docs/publication_versions.md): evidence-backed Silver v2 grouping and exact Databricks upgrade steps.
+- [Publication-version checks](sql/08_check_publication_versions.sql): read-only checks of contribution counts, provenance and eligibility.
 
-Bronze and Silver have been successfully built in Databricks by the user. Two
-verified identities currently support 151 researcher–work links and 232 topic-score
-rows. Next: preview identity batch 02 with SQL 07, explicitly approve it if satisfied,
-then validate/build with notebook 05. Do not recreate Bronze or approve all candidates.
+The latest user-confirmed Databricks build has seven verified identities, 440
+researcher–work links and 534 topic-score rows. Silver v2 is implemented and tested
+locally: it preserves both records of one reviewed Zenodo concept/version pair but
+counts the contribution once. Next: run updated SQL 04, import updated notebook 05
+and validate/build, then run SQL 08. Follow the publication-version upgrade guide.
+No new identity approvals or Bronze uploads are needed. Gold is not implemented yet.
 
 ## Run offline tests
 
