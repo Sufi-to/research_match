@@ -664,8 +664,8 @@ Completed for Silver v1 (2026-09-07):
 Still to implement or validate:
 
 - review pilot identity candidates and unresolved source references;
-- execute and verify the Silver validate/build/repeat sequence in Databricks;
-- approve a reviewed subset of researcher–OpenAlex links and verify derived relationships;
+- verify the unchanged-input repeat-build skip in Databricks if not already checked;
+- expand the reviewed subset of researcher–OpenAlex links and verify derived relationships;
 - resolve remaining cross-campus profile duplicates and ambiguous work/identity mappings;
 - implement approved institutional awards and researcher-award attribution when available;
 - add Gold schemas described here;
@@ -673,11 +673,20 @@ Still to implement or validate:
 
 ## 17. Immediate next task
 
-The public-source batches are loaded in Bronze. Follow
-[`silver_runbook.md`](silver_runbook.md) to run SQL 04, validate/build with notebook
-05, and inspect identity candidates using SQL 06. The initial graph intentionally
-has no researcher–work links until identities are explicitly approved. After
-review, rebuild Silver and verify evidence before creating Gold or AI Search.
+As of the user-confirmed results recorded on 2026-09-09, Bronze and Silver are built.
+The latest successful Silver build is `5fb6b85e-4bde-42ae-b237-cb8a396f6a81`:
+2 verified candidates (Abdallah Tubaishat and Ahed Abugabah), 121 pending,
+151 researcher–work links and 232 researcher-topic rows. Abdallah has 72 eligible
+records; Ahed has 77 of 79 eligible. The two excluded records are a retracted
+article and its notice. Researcher-award attribution remains empty intentionally.
+
+Follow [`identity_review_batch_02.md`](identity_review_batch_02.md) to preview five
+more proposed ORCID matches in SQL 07. Approval defaults to disabled and requires
+the user's explicit review. Rebuild using notebook 05 after recording decisions,
+then inspect topic support and publication/version types before Gold or AI Search.
+Hold ambiguous split author IDs and cross-campus profile duplicates for separate
+review. Profile grant statements are a future evidence-extraction task, not grounds
+to populate verified researcher-award rows automatically.
 The existing direct OAI notebook remains available but is not the selected workflow.
 
 ## References

@@ -67,6 +67,12 @@ directory entry into a searchable researcher.
 
 ## 3. Identity review: required before researcher–work links appear
 
+**Current checkpoint (user-confirmed, recorded 2026-09-09):** the build and first
+two approvals succeeded: 2 verified, 121 pending, 151 researcher–work links and
+232 topic-score rows. Continue with [identity batch 02](identity_review_batch_02.md)
+and its default-disabled SQL 07. The initial zero-link description below explains
+first-build behaviour, not the current result. SQL 06 remains read-only.
+
 The first build intentionally has:
 
 - pending identity candidates;

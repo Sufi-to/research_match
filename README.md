@@ -42,10 +42,13 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Silver builder](notebooks/05_build_silver.py): default validate-only transformation of existing Bronze data.
 - [Silver review SQL](sql/06_review_silver.sql): read-only exploration and identity evidence.
 - [Silver runbook](docs/silver_runbook.md): run order, expected counts, review decisions, and limits.
+- [Identity batch 02](docs/identity_review_batch_02.md): evidence for five more proposed matches and approval instructions.
+- [Guarded identity review SQL](sql/07_review_identity_batch_02.sql): previews by default; records only deliberately enabled, checked approvals.
 
-Bronze has been successfully loaded in Databricks and explored by the user. Next:
-run SQL 04, validate/build with notebook 05, then review identity candidates using
-SQL 06. Silver researcher–work links require explicit identity approval.
+Bronze and Silver have been successfully built in Databricks by the user. Two
+verified identities currently support 151 researcher–work links and 232 topic-score
+rows. Next: preview identity batch 02 with SQL 07, explicitly approve it if satisfied,
+then validate/build with notebook 05. Do not recreate Bronze or approve all candidates.
 
 ## Run offline tests
 
