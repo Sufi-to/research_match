@@ -4,11 +4,38 @@
 checks and Change Data Feed. Abdallah's preview contains 5,216 characters and 12
 publication references. Gold does not need rebuilding for this task.
 
-The new [notebook 12](../notebooks/12_setup_and_test_ai_search.py) discovers embedding
+The [notebook 12](../notebooks/12_setup_and_test_ai_search.py) discovers embedding
 models in **your workspace**, creates the intended index, verifies its contents and
-runs research-topic searches. Implementation and offline tests are local; live
-model availability, index creation and retrieval results are **not yet confirmed**.
-You chose to execute the notebook yourself.
+runs research-topic searches. You chose to execute it yourself. The user has now
+confirmed GTE inference for all seven profiles (1,242–1,535 tokens), and successful
+index creation on the existing `vs_endpoint_1` STANDARD endpoint. The index reports
+seven rows, ready, and processed source version 2. **Full content verification and
+live topic-search results remain pending.**
+
+### Resume after the optional column-list error
+
+The previous notebook rejected an index description that omitted `columns_to_sync`.
+That was an overly strict client-side check, not evidence that creation failed.
+The API defines this column list as optional and its GET example omits it.
+[Get-index reference](https://docs.databricks.com/api/workspace/vectorsearchindexes/getindex)
+
+Re-import the updated notebook 12 (or replace its code), keep widget execution set
+to **Do Nothing**, and use:
+
+- `endpoint_name=vs_endpoint_1`
+- `embedding_model=databricks-gte-large-en`
+- `mode=status`
+
+Run **all cells**, including the function definitions. No `create`, `probe`, `sync`
+or Gold rebuild is needed solely for this fix. Missing description metadata now
+defers to the mandatory content scan; it does not waive any data checks. Only after
+the full `Index content verified...` message should you switch to `mode=test`.
+If the scan reports missing actual columns or stale values, stop and share that
+new error; do not delete/recreate the index. All 142 offline tests pass, including
+regressions for omitted/null column lists and missing/stale indexed data.
+
+Confirmed lineage: Gold `9c1571ed-a5fb-45e3-8f5f-b066801e7cd5`, Silver
+`3230bb0f-28c7-4830-90b5-5a21034794cb`, Gold source version 2, identity version 3.
 
 ## 1. Which embedding model?
 
@@ -128,6 +155,10 @@ hash and all synced metadata against the current Gold documents. Tests filter by
 the captured Gold build and recheck result lineage plus source freshness. Stale
 results are rejected, not shown as current matches. Only one producer/operator at
 a time is supported; these checks are not cross-service transactions.
+
+An omitted/null synced-column list in the description is treated as unknown, not
+missing data. If a list is explicitly returned, it must include required metadata.
+Actual indexed rows must always pass the content scan before status/test succeeds.
 
 ## 4. What the search tests mean
 

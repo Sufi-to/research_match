@@ -236,9 +236,18 @@ def validate_index(index, cfg, model):
             or embedding.get("model_endpoint_name_for_query", model) not in (None, model)
             or spec.get("embedding_writeback_table")):
         raise ValueError("Unexpected index embedding/query/writeback configuration")
-    synced = spec.get("columns_to_sync", spec.get("columns_to_index"))
-    if synced is None or not (set(SYNC_COLUMNS) - {"document_id", "search_text"}).issubset(synced):
-        raise ValueError("Index lacks explicitly configured lineage/hash metadata; inspect configuration")
+    # GET can omit these optional fields even for a successfully created index.
+    # Missing configuration metadata is unknown, not proof of missing indexed data.
+    # Ready indexes must still pass scan_matches before status/test can succeed.
+    declared = [spec[field] for field in ("columns_to_sync", "columns_to_index")
+                if spec.get(field) is not None]
+    required = set(SYNC_COLUMNS) - {"document_id", "search_text"}
+    for synced in declared:
+        if (not isinstance(synced, list) or any(not isinstance(c, str) for c in synced)
+                or not required.issubset(synced)):
+            raise ValueError("Index reports an incomplete or invalid lineage/hash column list; inspect configuration")
+    if not declared:
+        print("Index description omits the optional synced-column list; actual indexed columns and values will be checked by the content scan before status/test succeeds.")
 
 
 def validate_endpoint(endpoints, cfg):
@@ -288,8 +297,12 @@ def scan_matches(w, cfg, docs):
         raise ValueError("Index scan has missing/extra/duplicate rows; wait for sync then check again")
     expected = {d["document_id"]: d for d in docs}
     for row in rows:
+        missing = sorted(set(SYNC_COLUMNS) - set(row))
+        if missing:
+            raise ValueError("Index scan is missing required columns: " + ", ".join(missing)
+                             + ". Stop and inspect the index; no search tests were run.")
         original = expected.get(row.get("document_id"))
-        if not original or any(k not in row or row[k] != original[k] for k in SYNC_COLUMNS):
+        if not original or any(row[k] != original[k] for k in SYNC_COLUMNS):
             raise ValueError("Index content is stale or differs from Gold; run sync and recheck")
     return True
 

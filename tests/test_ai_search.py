@@ -105,6 +105,32 @@ class SearchPureTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             search.validate_index(idx, cfg, "databricks-gte-large-en")
 
+    def test_optional_synced_column_lists_may_be_absent_or_null(self):
+        cfg = search.config()
+        for value in ("absent", None):
+            idx = search.index_spec(cfg, "databricks-gte-large-en")
+            del idx["delta_sync_index_spec"]["columns_to_sync"]
+            if value is None:
+                idx["delta_sync_index_spec"].update(columns_to_sync=None, columns_to_index=None)
+            search.validate_index(idx, cfg, "databricks-gte-large-en")
+
+    def test_alias_checked_even_if_primary_column_list_is_null(self):
+        cfg = search.config()
+        idx = search.index_spec(cfg, "databricks-gte-large-en")
+        idx["delta_sync_index_spec"].update(columns_to_sync=None, columns_to_index=list(search.SYNC_COLUMNS))
+        search.validate_index(idx, cfg, "databricks-gte-large-en")
+        idx["delta_sync_index_spec"]["columns_to_index"].remove("gold_build_id")
+        with self.assertRaisesRegex(ValueError, "incomplete or invalid"):
+            search.validate_index(idx, cfg, "databricks-gte-large-en")
+
+    def test_malformed_or_conflicting_declared_lists_rejected(self):
+        cfg = search.config()
+        for value in ("all", 7, [None], ["display_name"]):
+            idx = search.index_spec(cfg, "databricks-gte-large-en")
+            idx["delta_sync_index_spec"]["columns_to_index"] = value
+            with self.assertRaisesRegex(ValueError, "incomplete or invalid"):
+                search.validate_index(idx, cfg, "databricks-gte-large-en")
+
     def test_unrelated_or_multiple_endpoints_never_reused_silently(self):
         _, eps, _ = inventory()
         self.assertIsNone(search.validate_endpoint([], search.config()))
@@ -208,15 +234,16 @@ class SearchNotebookTests(unittest.TestCase):
         self.snap = {"gold_build_id": "gold", "silver_build_id": "silver", "source_version": 1,
                      "identity_version": 1, "documents": documents()}
 
-    def run_mode(self, mode, resources=None, mutate=None):
+    def run_mode(self, mode, resources=None, mutate=None, scan_response=None):
         widgets = {"mode": mode, "catalog": "workspace", "silver_schema": "researchmatch_silver",
                    "gold_schema": "researchmatch_gold", "endpoint_name": "researchmatch-search", "embedding_model": "auto"}
         dbutils = SimpleNamespace(widgets=SimpleNamespace(dropdown=Mock(), text=Mock(), get=widgets.__getitem__))
         with patch.object(search, "source_snapshot", return_value=self.snap), \
                 patch.object(search, "discover", return_value=resources if resources is not None else inventory()), \
-                patch.object(search, "probe_model") as probe, patch.object(search, "scan_matches") as scan, \
+                patch.object(search, "probe_model") as probe, \
+                patch.object(search, "scan_matches", wraps=search.scan_matches if scan_response is not None else None) as scan, \
                 patch.object(search, "assert_unchanged", side_effect=mutate) as unchanged, \
-                patch.object(search, "api_call") as api:
+                patch.object(search, "api_call", return_value=scan_response) as api:
             result = search.run_notebook(Mock(), dbutils, Mock())
             return result, api, probe, scan, unchanged
 
@@ -260,6 +287,35 @@ class SearchNotebookTests(unittest.TestCase):
         self.assertEqual(result["state"], "index_pending")
         api.assert_not_called()
         scan.assert_not_called()
+
+    def test_omitted_column_metadata_status_runs_real_content_scan(self):
+        names, eps, idx = inventory()
+        del idx["delta_sync_index_spec"]["columns_to_sync"]
+        result, api, probe, scan, _ = self.run_mode("status", (names, eps, idx),
+                                                   scan_response=scan_payload(documents()))
+        self.assertEqual(result["state"], "index_verified")
+        scan.assert_called_once()
+        probe.assert_not_called()
+        self.assertEqual(api.call_count, 1)
+        self.assertTrue(api.call_args.args[2].endswith("/scan"))
+
+    def test_omitted_column_metadata_does_not_bypass_missing_actual_data(self):
+        names, eps, idx = inventory()
+        del idx["delta_sync_index_spec"]["columns_to_sync"]
+        rows = documents()
+        del rows[0]["gold_build_id"]
+        for mode in ("status", "test"):
+            with self.assertRaisesRegex(ValueError, "missing required columns: gold_build_id"):
+                self.run_mode(mode, (names, eps, idx), scan_response=scan_payload(rows))
+
+    def test_omitted_column_metadata_does_not_bypass_stale_actual_data(self):
+        names, eps, idx = inventory()
+        del idx["delta_sync_index_spec"]["columns_to_sync"]
+        rows = documents()
+        rows[0]["search_text_sha256"] = "stale"
+        for mode in ("status", "test"):
+            with self.assertRaisesRegex(ValueError, "stale"):
+                self.run_mode(mode, (names, eps, idx), scan_response=scan_payload(rows))
 
     def test_explicit_sync_once_only(self):
         result, api, probe, _, _ = self.run_mode("sync")

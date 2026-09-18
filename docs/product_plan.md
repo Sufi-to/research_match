@@ -11,10 +11,13 @@ Databricks. Silver build `3230bb0f-28c7-4830-90b5-5a21034794cb` has seven verifi
 researchers, 440 source links, 439 contribution groups (437 eligible), and 534 topic
 rows; publication-version checks passed. The user also confirmed the seven-profile
 Gold build, expected counts, freshness, zero integrity violations and CDF in
-Databricks. The [AI Search setup/test notebook](ai_search_runbook.md) is implemented
-and locally tested; live model discovery, index creation and retrieval tests await
-the user's notebook run. No AI Search endpoint/index or app has been confirmed
-created. Broader profile coverage, verified funding and team matching remain
+Databricks. GTE inference passed for all seven profiles, and the user confirmed
+index creation on existing STANDARD endpoint `vs_endpoint_1`: seven indexed rows,
+ready, processed source version 2. Notebook 12's optional column-list validation
+has been corrected locally; full indexed-content verification and live search
+results remain pending. Resume with updated notebook 12 in status mode, then test;
+do not recreate resources. No app has been built. Broader profile coverage,
+verified funding and team matching remain
 later milestones, not completed features.
 
 The first implementation milestone is a pilot of approximately 50 researchers across
@@ -730,11 +733,13 @@ Still to implement or validate:
 
 ## 17. Immediate next task
 
-Follow [`ai_search_runbook.md`](ai_search_runbook.md): import fresh notebook 12,
-run discover, probe the selected available model, create the endpoint/index in
-stages, verify status/content, then run the topic tests. The user chose to run these
-steps personally. Do not repeat identity approvals, Bronze ingestion, the completed
-Silver v2 upgrade or Gold build. Share the probe/index status and query checks
+Follow [`ai_search_runbook.md`](ai_search_runbook.md): re-import updated notebook 12,
+set endpoint `vs_endpoint_1`, model `databricks-gte-large-en`, then run all cells
+with mode=status. This fixes the false failure caused by omitted optional index
+column-list metadata. After full content verification, run mode=test. The user
+chose to run these steps personally. Do not repeat resource creation, identity
+approvals, Bronze ingestion, the completed Silver v2 upgrade or Gold build.
+Share the full verified status and query checks
 before building the application. Do not advertise
 unreviewed profiles as verified matches or preprints as peer-reviewed articles.
 

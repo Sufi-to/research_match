@@ -58,10 +58,12 @@ links, 439 contribution groups (437 eligible), and 534 topic-score rows. SQL 08'
 version checks passed. Gold is now implemented and tested locally: seven profiles,
 437 publication-evidence rows, 534 topics, 1,170 topic-evidence links and seven
 search documents. The user has now confirmed that Gold ran successfully in
-Databricks, including freshness, integrity and CDF checks. Next: notebook 12
-discover → probe → create → status → test, following the AI Search runbook. The
-setup/test code is locally tested; actual workspace model availability, index
-creation and live retrieval results await that run. No new identity approvals,
+Databricks, including freshness, integrity and CDF checks. GTE inference and index
+creation on the existing `vs_endpoint_1` are now user-confirmed. Next: re-import
+fixed notebook 12 → status → test, following the AI Search runbook. The fix accepts
+an omitted optional column list in the index description but still verifies all
+indexed content. Full content verification and live retrieval results remain
+pending. Do not recreate the index. No new identity approvals,
 Bronze uploads or Gold rebuilds are needed. The application remains a later stage.
 
 ## Run offline tests
