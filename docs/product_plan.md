@@ -1,10 +1,19 @@
 # ResearchMatch AI — Product and Data Plan
 
 **Status:** Current source of truth  
-**Last updated:** 2026-09-05
+**Last updated:** 2026-09-18
 **Platform:** Databricks Free Edition  
 
-This MVP builds evidence-based profiles of active Zayed University researchers and matches a user-supplied research topic to suitable ZU collaborators or a complementary research team.
+This MVP builds evidence-based profiles of Zayed University researchers and matches a user-supplied research topic to suitable ZU collaborators or a complementary research team. Public directory observations do not establish current employment or collaboration availability; the pilot labels this limitation explicitly.
+
+**Current implementation checkpoint:** Bronze and Silver v2 are user-confirmed in
+Databricks. Silver build `3230bb0f-28c7-4830-90b5-5a21034794cb` has seven verified
+researchers, 440 source links, 439 contribution groups (437 eligible), and 534 topic
+rows; publication-version checks passed. The seven-profile Gold pilot is implemented
+and replayed locally, awaiting SQL 09 → notebook 10 validate/build → SQL 11 in
+Databricks. See [Gold runbook](gold_runbook.md). No AI Search endpoint/index or app has
+been created. Broader profile coverage, verified funding and team matching remain
+later milestones, not completed features.
 
 The first implementation milestone is a pilot of approximately 50 researchers across
 Business and Technological Innovation: enter a topic, retrieve five relevant ZU
@@ -198,6 +207,9 @@ Bronze remains versioned and reprocessable. Store selected raw business payloads
 | `researcher_affiliations` | One affiliation period/source per researcher |
 | `works` | One deduplicated research output |
 | `researcher_works` | One researcher-work authorship relationship |
+| `work_version_relationships` | One reviewed concept/version relationship with provenance |
+| `work_contributions` | One preserved work mapped to a contribution and representative |
+| `researcher_contributions` | One researcher-contribution group with eligibility/type |
 | `topics` | One OpenAlex topic with hierarchy |
 | `work_topics` | One work-topic score |
 | `researcher_topic_scores` | One researcher-topic score by scoring version |
@@ -230,17 +242,30 @@ Important Silver fields:
 - active/current flags;
 - record-quality indicators.
 
-### 5.3 Gold: product-ready profiles
+### 5.3 Gold: implemented seven-profile pilot
 
 | Table | Grain and purpose |
 |---|---|
-| `researcher_profiles` | One current profile per researcher |
-| `researcher_profile_publications` | Ranked publication evidence for each profile |
-| `researcher_profile_awards` | Confirmed and evidenced award summaries |
-| `researcher_profile_topics` | Ranked expertise topics with evidence and recency |
-| `researcher_match_features` | Structured activity, collaboration, breadth, and grant-experience features |
-| `researcher_search_documents` | One AI Search source row per searchable researcher |
-| `profile_quality_metrics` | Coverage, freshness, confidence, and unresolved-data measures |
+| `researcher_profiles` | One verified researcher per build, directory-observed affiliations, counts and templated summary |
+| `researcher_profile_publications` | One eligible representative contribution per researcher/build; 437 pilot evidence rows |
+| `researcher_profile_topics` | One ranked researcher-topic score per build; 534 pilot rows |
+| `researcher_topic_evidence` | One researcher-topic-contribution link per build; 1,170 pilot rows |
+| `profile_quality_metrics` | Coverage gaps, pending candidates and unresolved-data warnings per profile/build |
+| `researcher_search_document_history` | One bounded, evidence-linked search document per researcher/build |
+| `researcher_search_documents` | Current generated AI Search source projection; seven stable document IDs, CDF enabled |
+| `build_runs` | Frozen Silver versions, fingerprints, snapshot validation status and failures |
+
+The six snapshot tables retain history. `current_build` and the six `*_current`
+views follow the validated build actually published in the serving document table,
+not simply the newest run log. One atomic serving-table MERGE publishes a projection;
+there is no claim of cross-table transactions. Builds are manual and sequential.
+
+Funding remains `not_established` with a NULL verified-award count. Gold award
+summaries and separate match-feature tables are deferred until evidence/policy and
+retrieval evaluation justify them. Current employment is not inferred from identity
+verification. Preprints are labelled; retractions and concept aliases are excluded.
+Unreviewed version relationships may remain: group counts are not certified counts
+of independent studies. Same-title candidates are flagged, never automatically merged.
 
 Gold tables must be reproducible from Silver. Human corrections belong in a governed mapping/override input, not as undocumented manual edits to Gold.
 
@@ -329,30 +354,35 @@ Databricks Free Edition permits one AI Search endpoint with one search unit and 
 - Index subtype/query mode: hybrid semantic and keyword
 - Sync mode: triggered after a successful Gold refresh
 - Change Data Feed: enabled on the source Delta table
-- Row grain: one document per active searchable researcher
+- Row grain: one document per verified pilot researcher; directory-observed affiliation, not certified active employment
 
 A standard Delta Sync source requires Change Data Feed, and Databricks can compute managed embeddings from a text column. [Databricks AI Search creation guide](https://docs.databricks.com/aws/en/ai-search/create-ai-search)
 
-### Search document shape
+### Implemented search document shape
 
 | Column | Purpose |
 |---|---|
 | `document_id` | Stable key such as `researcher:<researcher_id>` |
 | `researcher_id` | Gold/Silver join key |
 | `display_name` | Result display and keyword matching |
-| `title`, `college`, `department`, `campus` | Display and filters |
-| `active_flag` | Hard filter |
-| `primary_fields` | Broad expertise labels |
-| `top_topics` | Fine-grained expertise labels |
-| `methods_text` | Demonstrated/stated methods |
-| `award_experience_text` | Verified/evidenced funded-project experience |
+| `college_codes_text` | Directory-observed college codes |
+| `top_topics_text` | Top ten evidence-backed topic labels and support counts |
 | `search_text` | Curated text sent to the managed embedding model |
-| `profile_quality_score` | Result confidence signal |
-| `latest_research_year` | Activity filter/reranking |
+| `search_text_sha256` | Content integrity hash |
+| `publication_evidence_ids`, `topic_ids` | Exact evidence represented in the text |
+| `eligible_contribution_count`, `eligible_preprint_count` | Contribution coverage with type labels |
+| `affiliation_status`, `funding_status`, `is_searchable` | Explicit directory-observed/unknown funding and searchable status |
 | `profile_url` | Evidence/display link |
-| `updated_at` | Freshness |
+| `gold_build_id`, `silver_build_id` | Published snapshot lineage and freshness |
 
-`search_text` should contain the researcher's evidence-backed research summary, primary topics, methods, selected recent/relevant work titles, and verified award themes. Keep it concise and stable; detailed publication and award rows stay in separate Gold tables and are joined after retrieval.
+Pilot `search_text` contains identity/coverage labels, top topics, and up to twelve
+selected eligible publication titles with labelled OpenAlex abstract excerpts.
+The 6,000-character limit is not a token-limit guarantee; verify the selected
+embedding model later. Raw biographies, repository descriptions, citations and
+unverified grant claims are not embedded. No unsupported methods or award themes
+are inferred. Full publication and topic evidence stays in separate Gold tables.
+The endpoint/index, managed-embedding choice and triggered sync are the next stage
+after Databricks Gold validation, not part of the current builder.
 
 ## 9. Topic matching and team formation
 
@@ -361,7 +391,8 @@ A standard Delta Sync source requires Change Data Feed, and Databricks can compu
 1. Accept the user's topic in natural language.
 2. Optionally collect methods, desired team size, college/campus constraints, and whether the user should be excluded.
 3. Query AI Search in hybrid mode against `search_text`.
-4. Filter to active researchers and any user constraints.
+4. Filter to verified searchable pilot researchers and supported user constraints;
+   show directory observation/freshness rather than claiming verified active employment.
 5. Retrieve a candidate pool, for example the top 20–40 researchers.
 
 ### 9.2 Structured reranking
@@ -661,6 +692,19 @@ Completed for Silver v1 (2026-09-07):
   13,557 work records before identity approval);
 - retained retracted records but excluded them from positive expertise evidence.
 
+Completed for Silver v2 and the local Gold pilot (2026-09-18 checkpoint):
+
+- user confirmed seven accepted identities and successful contribution-level
+  Silver build `3230bb0f-28c7-4830-90b5-5a21034794cb`;
+- preserved both Zenodo source records while using the reviewed version once;
+  SQL 08 checks returned zero violations, with 439 groups and 437 eligible groups;
+- implemented Gold SQL 09, self-contained default-validate notebook 10, review
+  SQL 11 and the runbook; no new Silver identity decisions are made;
+- replayed the full collection locally: seven profiles, 437 publication evidence
+  rows, 534 topics, 1,170 topic-evidence links and seven search documents;
+- passed 107 offline tests; Gold Spark/Delta execution remains to be checked in
+  the user's Databricks workspace.
+
 Still to implement or validate:
 
 - review pilot identity candidates and unresolved source references;
@@ -668,29 +712,24 @@ Still to implement or validate:
 - expand the reviewed subset of researcher–OpenAlex links and verify derived relationships;
 - resolve remaining cross-campus profile duplicates and ambiguous work/identity mappings;
 - implement approved institutional awards and researcher-award attribution when available;
-- add Gold schemas described here;
-- change the Gold AI Search source to researcher profiles only.
+- run and validate the implemented Gold pilot in Databricks;
+- provision one AI Search endpoint/index over the prepared researcher documents;
+- evaluate retrieval, then build evidence-backed results and the application.
 
 ## 17. Immediate next task
 
-The latest user-confirmed successful Silver build is
-`a5f7a124-429b-431c-b4b4-1f913b1e4e7f`: 7 verified candidates, 116 pending,
-440 researcher–work links (438 eligible) and 534 researcher-topic rows. The user
-also confirmed zero shared eligible work IDs among those profiles. Researcher-award
-attribution remains empty intentionally.
-
-On 2026-09-10, Silver v2 was implemented and tested locally to resolve Dima's two
-Zenodo DOI records as one contribution using reciprocal DataCite version evidence.
-Both source records remain preserved. The local replay with simulated versions of
-the seven user-confirmed approvals produced 439 researcher-contribution groups,
-437 eligible groups, 534 topic rows, and 25 quality issues (one new informational
-alias issue). This is not a claim of a completed Databricks v2 run.
-
-Follow [`publication_versions.md`](publication_versions.md): rerun updated SQL 04,
-import updated notebook 05, validate/build, then run read-only SQL 08. Do not rerun
-identity approvals or Bronze ingestion. Afterwards build a seven-profile Gold pilot
-using contribution counts and evidence eligibility/type labels; do not advertise
+Follow [`gold_runbook.md`](gold_runbook.md): run SQL 09, import fresh notebook 10,
+run all cells in validate mode, then build mode, then run read-only SQL 11. The
+current seven-person Silver checkpoint is already ready for this step. Do not
+repeat identity approvals, Bronze ingestion or the completed Silver v2 upgrade.
+Share Gold's published-build/freshness row, dataset and profile counts, and
+zero-violation checks before creating an AI Search index. Do not advertise
 unreviewed profiles as verified matches or preprints as peer-reviewed articles.
+
+This pilot is intentionally limited to the seven verified researchers. Remaining
+116 identity candidates stay pending; coauthor edges and researcher-award links
+remain empty. Gold funding is unknown, not zero. Current employment and
+collaboration availability remain unverified directory observations.
 Hold ambiguous split author IDs and cross-campus profile duplicates for separate
 review. Profile grant statements are a future evidence-extraction task, not grounds
 to populate verified researcher-award rows automatically.

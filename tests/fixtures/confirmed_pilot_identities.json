@@ -1,0 +1,12 @@
+{
+  "purpose": "Offline simulation only. These are the seven candidate/evidence pairs the user confirmed as verified in Silver build 3230bb0f-28c7-4830-90b5-5a21034794cb. Not a Databricks decision import.",
+  "identities": [
+    {"name":"Abdallah Tubaishat","candidate_id":"44cf9bdf90ed174b21ef7c209b7711e81d484407938767c538b205061f18c1a3","evidence_hash":"a282e99bd89dea60aa75538cc1555f91407bd391564ec6846cf6ba362b897583"},
+    {"name":"Ahed Abugabah","candidate_id":"f06f16a9671200d265feb9268d2f5c7fe7be5c0c303299044f96c10ecc5d5131","evidence_hash":"3acec11e24b81966b948ca1a894128d8ce8b37b234215985951c7aeda58d6c5e"},
+    {"name":"Ahmed Shuhaiber","candidate_id":"86050149bfa067a3d7f061043511e21b3542e59f1f828c9c0cef2617addd3802","evidence_hash":"f32582381cfcd9268ca2e89622f32380a9fcd7e58298d349c3d1bb83cd0a26d8"},
+    {"name":"Andrew Marrington","candidate_id":"d34c761d225e3eae4eff05a31b89e0be599c4ed6edbb914c4165ff4c00ed7b65","evidence_hash":"6e47355b93436a0a983d9f8c3a4584b6d64bced0971202f96b0aabd6a2d0784c"},
+    {"name":"Dima Rabadi","candidate_id":"f2ee4dd76b837b653c61804d9fe93e4a61d0c804ead5295b73461e44196f0e6d","evidence_hash":"c2d0cf9ee22791f0dde7fb82197ce805b8653470680c82cbcfa6db1fa48476cf"},
+    {"name":"Fatma Outay","candidate_id":"8f074a9069a87ebf9188ea2f6bc4a0ff80b9624c849ccc74301cd41b54b9b559","evidence_hash":"dbcbd26061cf631149950ecde3bb7a16c8765e6119d176f16335f788fc68d539"},
+    {"name":"Graham Manville","candidate_id":"a1eb62811da203298063bdf8f3b9bd0ba0ed0d4a526039801bd8e5d892c999d5","evidence_hash":"7835e65a7b1544bfbea00ed0cb382232c30060bea0b5aecb2ff1b782acef68eb"}
+  ]
+}

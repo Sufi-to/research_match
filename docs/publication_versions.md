@@ -128,7 +128,18 @@ publication types. Do not label 439 as “439 independent peer-reviewed studies.
 Gold must use contribution-level counts with eligibility/type labels, not blindly
 count `researcher_works`. Do not mix topic rows from different build snapshots.
 
-All 77 offline tests pass. Tests cover preservation, single counting, retractions, missing/ambiguous
+At that implementation checkpoint, all 77 offline tests passed. Tests cover preservation, single counting, retractions, missing/ambiguous
 pairs, unsupported chains, unapproved identities, conflicting authorship and
-coauthor deduplication. Databricks parsing/permissions/Delta execution still need
-the upgrade run above. Gold implementation remains the next stage after that check.
+coauthor deduplication.
+
+## Confirmed Databricks checkpoint and next step
+
+The user subsequently completed the upgrade: Silver build
+`3230bb0f-28c7-4830-90b5-5a21034794cb` matches these counts. SQL 08 confirmed the
+concept alias is excluded, the version is the eligible representative, Dima has
+ten contribution groups, and all three integrity checks report zero violations.
+The 25 quality issues include the expected informational concept-alias flag.
+
+As of 2026-09-18 the [Gold pilot](gold_runbook.md) is implemented and locally tested
+for these seven verified researchers. Run SQL 09, notebook 10 validate/build and
+SQL 11 next. Do not repeat the Silver upgrade merely to begin Gold.

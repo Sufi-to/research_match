@@ -5,11 +5,11 @@ review. It is a bounded, on-demand Free Edition pilot, not a continuously runnin
 pipeline. There are no API calls, new downloads, packages to install, AI Search
 resources, or Lakebase dependencies at this stage.
 
-**Upgrading an existing build:** follow [Silver v2 publication-version handling](publication_versions.md).
-The user has already confirmed seven identities and a successful v1 build. Updated
-SQL 04 adds three tables/views without replacing existing data; notebook 05 v2
-uses contribution-level scoring. SQL 08 verifies the upgrade. Do not repeat Bronze
-loading or identity approval to apply this change.
+**Current checkpoint:** the user confirmed Silver v2 build
+`3230bb0f-28c7-4830-90b5-5a21034794cb` and zero violations in SQL 08's version checks.
+The next step is the [seven-profile Gold pilot](gold_runbook.md), not another Silver
+upgrade or identity approval. The [Silver v2 upgrade instructions](publication_versions.md)
+remain available for older deployments. No new Bronze upload is needed.
 
 ## 1. Run order in Databricks
 
@@ -75,8 +75,9 @@ directory entry into a searchable researcher.
 ## 3. Identity review: required before researcher–work links appear
 
 **Current user-confirmed checkpoint:** batch 02 succeeded: 7 verified, 116 pending,
-440 researcher–work links and 534 topic-score rows. The next step is the
-[version-handling upgrade](publication_versions.md), not another approval run.
+440 researcher–work links and 534 topic-score rows. The subsequent Silver v2 upgrade
+also succeeded with 439 contribution groups, 437 eligible. The next step is the
+[Gold pilot](gold_runbook.md), not another approval run.
 The initial zero-link description below explains first-build behaviour, not the
 current result. SQL 06 and SQL 08 are read-only.
 

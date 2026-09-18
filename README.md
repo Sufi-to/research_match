@@ -46,13 +46,18 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Guarded identity review SQL](sql/07_review_identity_batch_02.sql): previews by default; records only deliberately enabled, checked approvals.
 - [Publication-version upgrade](docs/publication_versions.md): evidence-backed Silver v2 grouping and exact Databricks upgrade steps.
 - [Publication-version checks](sql/08_check_publication_versions.sql): read-only checks of contribution counts, provenance and eligibility.
+- [Gold DDL](sql/09_create_gold_tables.sql): profile/evidence snapshots and a CDF-enabled search-source table.
+- [Gold builder](notebooks/10_build_gold.py): validate or publish the seven verified profiles from one frozen Silver build.
+- [Gold review SQL](sql/11_review_gold.sql): counts, evidence, freshness, search previews and integrity checks.
+- [Gold runbook](docs/gold_runbook.md): exact Databricks steps, expected results, resource bounds and recovery.
 
-The latest user-confirmed Databricks build has seven verified identities, 440
-researcher–work links and 534 topic-score rows. Silver v2 is implemented and tested
-locally: it preserves both records of one reviewed Zenodo concept/version pair but
-counts the contribution once. Next: run updated SQL 04, import updated notebook 05
-and validate/build, then run SQL 08. Follow the publication-version upgrade guide.
-No new identity approvals or Bronze uploads are needed. Gold is not implemented yet.
+The user-confirmed Silver v2 build has seven verified identities, 440 researcher–work
+links, 439 contribution groups (437 eligible), and 534 topic-score rows. SQL 08's
+version checks passed. Gold is now implemented and tested locally: seven profiles,
+437 publication-evidence rows, 534 topics, 1,170 topic-evidence links and seven
+search documents. Next: SQL 09 → notebook 10 validate/build → SQL 11, following the
+Gold runbook. No new identity approvals or Bronze uploads are needed. Gold has not
+yet been run in Databricks; the AI Search endpoint/index and application are deferred.
 
 ## Run offline tests
 

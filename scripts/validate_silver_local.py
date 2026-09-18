@@ -19,16 +19,11 @@ def module(name, path):
     return loaded
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--landing-path", default=str(ROOT / "data/landing"))
-    parser.add_argument("--batch-folders", default="pilot-20260905,openalex-20260905")
-    parser.add_argument("--identity-decisions-json", type=Path,
-                        help="Optional local decision list for simulation only; never uploads/records approvals")
-    args = parser.parse_args()
+def replay(landing_path, batch_folders, decisions=()):
+    """Reusable read-only replay for Silver and Gold offline validation."""
     bronze = module("bronze", ROOT / "notebooks/03_load_volume_to_bronze.py")
     silver = module("silver", ROOT / "notebooks/05_build_silver.py")
-    plan = bronze.select_inputs(args.landing_path, args.batch_folders.split(","), list(silver.BRONZE_KEYS), 0)
+    plan = bronze.select_inputs(landing_path, batch_folders, list(silver.BRONZE_KEYS), 0)
 
     def read(table):
         latest = {}
@@ -47,6 +42,16 @@ def main():
             yield latest.pop(entity)[1]
 
     reader, totals = silver.bounded_read(read)
+    return silver.build_graph(reader, decisions), totals
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--landing-path", default=str(ROOT / "data/landing"))
+    parser.add_argument("--batch-folders", default="pilot-20260905,openalex-20260905")
+    parser.add_argument("--identity-decisions-json", type=Path,
+                        help="Optional local decision list for simulation only; never uploads/records approvals")
+    args = parser.parse_args()
     decisions = []
     if args.identity_decisions_json:
         decisions = json.loads(args.identity_decisions_json.read_text())
@@ -54,7 +59,7 @@ def main():
             raise ValueError("Local decision simulation requires a JSON list")
         for row in decisions:
             row["reviewed_at"] = datetime.fromisoformat(row["reviewed_at"])
-    graph = silver.build_graph(reader, decisions)
+    graph, totals = replay(args.landing_path, args.batch_folders.split(","), decisions)
     works = graph.rows("works")
     candidates = graph.rows("entity_resolution_review")
     researchers = {r["researcher_id"]: r["display_name"] for r in graph.rows("researchers")}
