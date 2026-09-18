@@ -52,6 +52,9 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Gold runbook](docs/gold_runbook.md): exact Databricks steps, expected results, resource bounds and recovery.
 - [AI Search setup and tests](notebooks/12_setup_and_test_ai_search.py): discover/probe embedding models, create the triggered index, verify contents and test topics.
 - [AI Search runbook](docs/ai_search_runbook.md): Free Edition model policy, exact widget steps, expected states and troubleshooting.
+- [Evidence-backed matching](notebooks/13_match_researchers.py): query the existing index, check publication support and return candidates for review or insufficient evidence.
+- [Matching runbook](docs/matching_runbook.md): validate → match → evaluate instructions, safeguards and limitations.
+- [Manual matching evaluation](docs/matching_evaluation_review.md): human review template, including held-out topics and negative cases.
 
 The user-confirmed Silver v2 build has seven verified identities, 440 researcher–work
 links, 439 contribution groups (437 eligible), and 534 topic-score rows. SQL 08's
@@ -59,11 +62,13 @@ version checks passed. Gold is now implemented and tested locally: seven profile
 437 publication-evidence rows, 534 topics, 1,170 topic-evidence links and seven
 search documents. The user has now confirmed that Gold ran successfully in
 Databricks, including freshness, integrity and CDF checks. GTE inference and index
-creation on the existing `vs_endpoint_1` are now user-confirmed. Next: re-import
-fixed notebook 12 → status → test, following the AI Search runbook. The fix accepts
-an omitted optional column list in the index description but still verifies all
-indexed content. Full content verification and live retrieval results remain
-pending. Do not recreate the index. No new identity approvals,
+creation on the existing `vs_endpoint_1`, full indexed-content verification and
+all 16 live search checks are now user-confirmed. Retrieval smoke checks are not
+independently labelled matching accuracy. Notebook 13 adds explicit publication
+evidence screening, cautious ranking and insufficient-evidence responses; it passes
+local tests and a full-collection evidence replay. Next: import notebook 13 and run
+validate → match → evaluate, following the matching runbook. Its live Databricks
+execution and human relevance review remain outstanding. Do not recreate the index. No new identity approvals,
 Bronze uploads or Gold rebuilds are needed. The application remains a later stage.
 
 ## Run offline tests

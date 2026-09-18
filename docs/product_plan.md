@@ -14,9 +14,13 @@ Gold build, expected counts, freshness, zero integrity violations and CDF in
 Databricks. GTE inference passed for all seven profiles, and the user confirmed
 index creation on existing STANDARD endpoint `vs_endpoint_1`: seven indexed rows,
 ready, processed source version 2. Notebook 12's optional column-list validation
-has been corrected locally; full indexed-content verification and live search
-results remain pending. Resume with updated notebook 12 in status mode, then test;
-do not recreate resources. No app has been built. Broader profile coverage,
+was corrected; the user subsequently confirmed full indexed-content verification
+and all 16 live search checks. These are smoke checks, not independently labelled
+relevance accuracy. Notebook 13 now implements evidence-backed matching using the
+same index, with explicit uncalibrated lexical screening and insufficient-evidence
+responses. All 172 offline tests pass, and a full-collection evidence-policy replay
+completed. Notebook 13 still needs user execution in Databricks and human relevance
+review. Do not recreate resources. No app has been built. Broader profile coverage,
 verified funding and team matching remain
 later milestones, not completed features.
 
@@ -719,7 +723,22 @@ Completed for Silver v2 and the local Gold pilot (2026-09-18 checkpoint):
   successful Gold Spark/Delta execution and all SQL 11 checks;
 - implemented notebook 12 for model discovery, inference probes, one STANDARD
   endpoint/triggered Delta Sync index, exact content checks and eight-topic ANN/hybrid
-  evaluation. These live AI Search operations remain for the user to execute.
+  evaluation. The user subsequently confirmed model probes, index creation,
+  full content verification and all 16 live query checks.
+
+Completed locally for evidence-backed matching (2026-09-18):
+
+- implemented self-contained notebook 13, reusing the existing seven-profile index
+  and version-pinned Gold publication/topic evidence without writes or new resources;
+- added explicit contribution-level evidence screening, required-term support,
+  preprint/source-topic provenance, partial-coverage labels and cautious abstention;
+- added compact smoke evaluation and a separate human review template;
+- passed 172 offline tests and replayed all 12 smoke topics against the full local
+  evidence collection. Synthetic candidate ordering is not live AI Search validation;
+- versioned the provisional policy as `matching_v1_explicit_evidence`: 60% specific
+  anchor coverage per contribution, with title/source-topic support. Ranking uses
+  title coverage, combined evidence coverage, query coverage and bounded support
+  count. Weights and thresholds require human calibration; scores are not probabilities.
 
 Still to implement or validate:
 
@@ -728,19 +747,20 @@ Still to implement or validate:
 - expand the reviewed subset of researcher–OpenAlex links and verify derived relationships;
 - resolve remaining cross-campus profile duplicates and ambiguous work/identity mappings;
 - implement approved institutional awards and researcher-award attribution when available;
-- run the implemented AI Search discovery/setup/test notebook in Databricks;
-- evaluate retrieval, then build evidence-backed results and the application.
+- run notebook 13's validate/match/evaluate modes in Databricks;
+- independently review matching evidence and held-out topics, then refine the policy
+  before building the application.
 
 ## 17. Immediate next task
 
-Follow [`ai_search_runbook.md`](ai_search_runbook.md): re-import updated notebook 12,
-set endpoint `vs_endpoint_1`, model `databricks-gte-large-en`, then run all cells
-with mode=status. This fixes the false failure caused by omitted optional index
-column-list metadata. After full content verification, run mode=test. The user
-chose to run these steps personally. Do not repeat resource creation, identity
-approvals, Bronze ingestion, the completed Silver v2 upgrade or Gold build.
-Share the full verified status and query checks
-before building the application. Do not advertise
+Follow [`matching_runbook.md`](matching_runbook.md): import notebook 13,
+keep endpoint `vs_endpoint_1` and model `databricks-gte-large-en`, then run all cells
+with mode=validate. Follow with mode=match for medical imaging and forensics, and
+mode=evaluate for the compact smoke summary. The user runs these steps personally.
+Do not repeat resource creation, identity approvals, Bronze ingestion, the completed
+Silver v2 upgrade or Gold build. Share validation counts, query checks and cited
+evidence before UI work. Use [`matching_evaluation_review.md`](matching_evaluation_review.md)
+for independent relevance judgements before claiming quality. Do not advertise
 unreviewed profiles as verified matches or preprints as peer-reviewed articles.
 
 This pilot is intentionally limited to the seven verified researchers. Remaining

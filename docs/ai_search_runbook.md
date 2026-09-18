@@ -9,17 +9,23 @@ models in **your workspace**, creates the intended index, verifies its contents 
 runs research-topic searches. You chose to execute it yourself. The user has now
 confirmed GTE inference for all seven profiles (1,242–1,535 tokens), and successful
 index creation on the existing `vs_endpoint_1` STANDARD endpoint. The index reports
-seven rows, ready, and processed source version 2. **Full content verification and
-live topic-search results remain pending.**
+seven rows, ready, and processed source version 2. **The user subsequently confirmed
+full content verification and all 16 live topic-search checks.** For seven in-scope
+topics the hypothesized researcher appeared in the top three for both ANN and
+hybrid; this is a smoke check, not independently labelled accuracy. The unrelated
+astronomy query also returned candidates, demonstrating why retrieval alone is
+insufficient. Next use [notebook 13's matching runbook](matching_runbook.md) for
+publication evidence screening and manual evaluation. Do not recreate the index.
 
-### Resume after the optional column-list error
+### Resolved: optional column-list error (recovery reference)
 
 The previous notebook rejected an index description that omitted `columns_to_sync`.
 That was an overly strict client-side check, not evidence that creation failed.
 The API defines this column list as optional and its GET example omits it.
 [Get-index reference](https://docs.databricks.com/api/workspace/vectorsearchindexes/getindex)
 
-Re-import the updated notebook 12 (or replace its code), keep widget execution set
+The user has already completed this recovery. If using an older copy, re-import
+the updated notebook 12 (or replace its code), keep widget execution set
 to **Do Nothing**, and use:
 
 - `endpoint_name=vs_endpoint_1`
@@ -31,7 +37,7 @@ or Gold rebuild is needed solely for this fix. Missing description metadata now
 defers to the mandatory content scan; it does not waive any data checks. Only after
 the full `Index content verified...` message should you switch to `mode=test`.
 If the scan reports missing actual columns or stale values, stop and share that
-new error; do not delete/recreate the index. All 142 offline tests pass, including
+new error; do not delete/recreate the index. At that checkpoint, 142 offline tests passed, including
 regressions for omitted/null column lists and missing/stale indexed data.
 
 Confirmed lineage: Gold `9c1571ed-a5fb-45e3-8f5f-b066801e7cd5`, Silver
