@@ -50,14 +50,19 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Gold builder](notebooks/10_build_gold.py): validate or publish the seven verified profiles from one frozen Silver build.
 - [Gold review SQL](sql/11_review_gold.sql): counts, evidence, freshness, search previews and integrity checks.
 - [Gold runbook](docs/gold_runbook.md): exact Databricks steps, expected results, resource bounds and recovery.
+- [AI Search setup and tests](notebooks/12_setup_and_test_ai_search.py): discover/probe embedding models, create the triggered index, verify contents and test topics.
+- [AI Search runbook](docs/ai_search_runbook.md): Free Edition model policy, exact widget steps, expected states and troubleshooting.
 
 The user-confirmed Silver v2 build has seven verified identities, 440 researcher–work
 links, 439 contribution groups (437 eligible), and 534 topic-score rows. SQL 08's
 version checks passed. Gold is now implemented and tested locally: seven profiles,
 437 publication-evidence rows, 534 topics, 1,170 topic-evidence links and seven
-search documents. Next: SQL 09 → notebook 10 validate/build → SQL 11, following the
-Gold runbook. No new identity approvals or Bronze uploads are needed. Gold has not
-yet been run in Databricks; the AI Search endpoint/index and application are deferred.
+search documents. The user has now confirmed that Gold ran successfully in
+Databricks, including freshness, integrity and CDF checks. Next: notebook 12
+discover → probe → create → status → test, following the AI Search runbook. The
+setup/test code is locally tested; actual workspace model availability, index
+creation and live retrieval results await that run. No new identity approvals,
+Bronze uploads or Gold rebuilds are needed. The application remains a later stage.
 
 ## Run offline tests
 

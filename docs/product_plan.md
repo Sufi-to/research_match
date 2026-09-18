@@ -9,10 +9,12 @@ This MVP builds evidence-based profiles of Zayed University researchers and matc
 **Current implementation checkpoint:** Bronze and Silver v2 are user-confirmed in
 Databricks. Silver build `3230bb0f-28c7-4830-90b5-5a21034794cb` has seven verified
 researchers, 440 source links, 439 contribution groups (437 eligible), and 534 topic
-rows; publication-version checks passed. The seven-profile Gold pilot is implemented
-and replayed locally, awaiting SQL 09 → notebook 10 validate/build → SQL 11 in
-Databricks. See [Gold runbook](gold_runbook.md). No AI Search endpoint/index or app has
-been created. Broader profile coverage, verified funding and team matching remain
+rows; publication-version checks passed. The user also confirmed the seven-profile
+Gold build, expected counts, freshness, zero integrity violations and CDF in
+Databricks. The [AI Search setup/test notebook](ai_search_runbook.md) is implemented
+and locally tested; live model discovery, index creation and retrieval tests await
+the user's notebook run. No AI Search endpoint/index or app has been confirmed
+created. Broader profile coverage, verified funding and team matching remain
 later milestones, not completed features.
 
 The first implementation milestone is a pilot of approximately 50 researchers across
@@ -384,6 +386,14 @@ are inferred. Full publication and topic evidence stays in separate Gold tables.
 The endpoint/index, managed-embedding choice and triggered sync are the next stage
 after Databricks Gold validation, not part of the current builder.
 
+Notebook 12 implements that next stage with read-only discovery as its default.
+It prefers a listed `databricks-gte-large-en`, allows the longer-context Qwen3
+embedding endpoint, and refuses short-context BGE for these whole-profile documents.
+Model listing is not proof of Free Edition inference access: the explicit probe
+must pass inside the workspace. Creation is guarded against a second endpoint or
+replacement of an incompatible existing index. Exact indexed content/lineage is
+checked before ANN/hybrid smoke tests. No live results are claimed yet.
+
 ## 9. Topic matching and team formation
 
 ### 9.1 Candidate retrieval
@@ -702,8 +712,11 @@ Completed for Silver v2 and the local Gold pilot (2026-09-18 checkpoint):
   SQL 11 and the runbook; no new Silver identity decisions are made;
 - replayed the full collection locally: seven profiles, 437 publication evidence
   rows, 534 topics, 1,170 topic-evidence links and seven search documents;
-- passed 107 offline tests; Gold Spark/Delta execution remains to be checked in
-  the user's Databricks workspace.
+- passed 107 offline tests at the Gold checkpoint; the user subsequently confirmed
+  successful Gold Spark/Delta execution and all SQL 11 checks;
+- implemented notebook 12 for model discovery, inference probes, one STANDARD
+  endpoint/triggered Delta Sync index, exact content checks and eight-topic ANN/hybrid
+  evaluation. These live AI Search operations remain for the user to execute.
 
 Still to implement or validate:
 
@@ -712,18 +725,17 @@ Still to implement or validate:
 - expand the reviewed subset of researcher–OpenAlex links and verify derived relationships;
 - resolve remaining cross-campus profile duplicates and ambiguous work/identity mappings;
 - implement approved institutional awards and researcher-award attribution when available;
-- run and validate the implemented Gold pilot in Databricks;
-- provision one AI Search endpoint/index over the prepared researcher documents;
+- run the implemented AI Search discovery/setup/test notebook in Databricks;
 - evaluate retrieval, then build evidence-backed results and the application.
 
 ## 17. Immediate next task
 
-Follow [`gold_runbook.md`](gold_runbook.md): run SQL 09, import fresh notebook 10,
-run all cells in validate mode, then build mode, then run read-only SQL 11. The
-current seven-person Silver checkpoint is already ready for this step. Do not
-repeat identity approvals, Bronze ingestion or the completed Silver v2 upgrade.
-Share Gold's published-build/freshness row, dataset and profile counts, and
-zero-violation checks before creating an AI Search index. Do not advertise
+Follow [`ai_search_runbook.md`](ai_search_runbook.md): import fresh notebook 12,
+run discover, probe the selected available model, create the endpoint/index in
+stages, verify status/content, then run the topic tests. The user chose to run these
+steps personally. Do not repeat identity approvals, Bronze ingestion, the completed
+Silver v2 upgrade or Gold build. Share the probe/index status and query checks
+before building the application. Do not advertise
 unreviewed profiles as verified matches or preprints as peer-reviewed articles.
 
 This pilot is intentionally limited to the seven verified researchers. Remaining

@@ -5,8 +5,11 @@ topic evidence and one bounded search document per researcher. It uses only exis
 Silver Delta data. There are no API calls, API keys, new downloads, additional
 packages, LLM calls, embeddings, AI Search endpoints or Lakebase resources in this step.
 
-Implemented and replayed locally on **2026-09-18**; Databricks execution is still
-required. The user's confirmed Silver v2 build is
+Implemented and replayed locally on **2026-09-18**. The user subsequently confirmed
+successful Databricks execution, expected counts, fresh lineage, zero integrity
+violations and CDF enabled. Next: [AI Search setup and tests](ai_search_runbook.md).
+The instructions below remain the Gold run/recovery reference, not a request to
+repeat a completed build. The user's confirmed Silver v2 build is
 `3230bb0f-28c7-4830-90b5-5a21034794cb`. Its publication-version checks passed.
 Do not repeat Bronze ingestion, identity approvals or the Silver upgrade for this
 checkpoint.
@@ -202,4 +205,4 @@ user-confirmed identities; the fixture is **not a decision import or approval to
 No Databricks data is changed by either command.
 
 Local tests do not replace live Spark/Delta parsing, permission and integration
-checks. Complete steps 1–7 in Databricks before treating Gold as deployed.
+checks. Steps 1–7 have now been confirmed by the user for this deployment.
