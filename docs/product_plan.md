@@ -26,10 +26,16 @@ notebook 14 now implements `matching_v2_direct_evidence`, retaining notebook 13
 unchanged for comparison. It requires direct title/abstract support, separates
 partial candidates and discounts same-title display/ranking support without merging
 records. All 210 local tests pass; the full local replay completed for 12 smoke and
-12 reserved prompts and flagged 19 unverified same-title groups. Notebook 14 still
-needs user execution and human relevance evaluation. The reserved replay exposed
+12 reserved prompts and flagged 19 unverified same-title groups. The user confirmed
+notebook 14's validate/match/evaluate runs (six partial, four insufficient-evidence,
+two refinement outcomes) and approved continuing to the UI pilot. Independent
+relevance labels were not supplied. The reserved replay exposed
 remaining lexical false positives in partial results; no accuracy claim is made.
-Do not recreate resources. No app has been built. Broader profile coverage,
+The read-only Streamlit app is now implemented locally, reusing notebook 14's
+unchanged policy and the existing SQL warehouse/index. Live app service-principal
+permissions, deployment and user acceptance remain unverified. No app resources
+were provisioned by the coding agent. All 231 tests pass in the app-enabled local
+environment, including UI and SQL-adapter checks. Do not recreate data/search resources. Broader profile coverage,
 verified funding and team matching remain
 later milestones, not completed features.
 
@@ -474,6 +480,14 @@ Never present generated explanations without the evidence rows used to support t
 
 ## 10. Application shape
 
+Current first UI slice: the `app/` folder contains a read-only Streamlit app with
+a topic form, optional required terms, separate direct/partial evidence lists,
+publication links, preprint/possible-version warnings and build provenance. It
+uses Databricks-managed app authorization and a bounded SQL Statement API adapter,
+not Spark inside the app. Page load does not query data; explicit submissions
+recheck current snapshots. No new team algorithm, LLM or persistence is introduced.
+See [`app_runbook.md`](app_runbook.md). The features below remain the broader target.
+
 The MVP can be one Databricks App with:
 
 - a topic input box;
@@ -756,19 +770,19 @@ Still to implement or validate:
 - expand the reviewed subset of researcher–OpenAlex links and verify derived relationships;
 - resolve remaining cross-campus profile duplicates and ambiguous work/identity mappings;
 - implement approved institutional awards and researcher-award attribution when available;
-- run the separate notebook 14's validate/match/evaluate modes in Databricks;
-- independently review matching evidence and held-out topics, then refine the policy
-  before building the application.
+- deploy the private read-only app and validate its own service-principal permissions;
+- independently review matching evidence and held-out topics before broader release;
+- evaluate actual app SQL latency/quota use before adding any cache or stateful features.
 
 ## 17. Immediate next task
 
-Follow [`strict_matching_runbook.md`](strict_matching_runbook.md): import notebook 14,
-keep endpoint `vs_endpoint_1` and model `databricks-gte-large-en`, then run all cells
-with mode=validate. Follow with mode=match for medical imaging, forensics and transport, and
-mode=evaluate for the compact smoke summary. The user runs these steps personally.
-Do not repeat resource creation, identity approvals, Bronze ingestion, the completed
-Silver v2 upgrade or Gold build. Share validation counts, query checks and cited
-evidence before UI work. Use [`matching_evaluation_review.md`](matching_evaluation_review.md)
+Follow [`app_runbook.md`](app_runbook.md): upload only the contents of `app/` as
+workspace files, create one private Databricks App, and attach the existing warehouse
+and index. Grant its service principal only the listed read permissions, deploy,
+then use Check connection and data before submitting topics. The user runs these
+steps personally; no remote deployment has occurred. Do not repeat identity approvals,
+Bronze ingestion, Silver/Gold builds or AI Search creation. Use
+[`matching_evaluation_review.md`](matching_evaluation_review.md)
 for independent relevance judgements before claiming quality. Do not advertise
 unreviewed profiles as verified matches or preprints as peer-reviewed articles.
 

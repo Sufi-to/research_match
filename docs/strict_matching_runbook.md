@@ -1,5 +1,12 @@
 # Notebook 14 — stricter direct-evidence pilot
 
+**Live checkpoint:** the user confirmed validate, match and evaluate runs. The
+evaluation returned six partial-evidence cases, four insufficient-evidence cases
+and two refinement requests, matching the local smoke behaviour. The user approved
+continuing to a private UI pilot, not an independently labelled accuracy claim.
+The next step is the [read-only app deployment](app_runbook.md). The instructions
+below remain available for notebook comparison and troubleshooting.
+
 Notebook 13 is preserved unchanged as the comparison baseline. Import
 [`14_match_researchers_strict.py`](../notebooks/14_match_researchers_strict.py) as a
 separate notebook. Policy: `matching_v2_direct_evidence`.

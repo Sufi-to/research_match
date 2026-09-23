@@ -57,6 +57,8 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Manual matching evaluation](docs/matching_evaluation_review.md): human review template, including held-out topics and negative cases.
 - [Strict matching comparison](notebooks/14_match_researchers_strict.py): separate title/abstract-only policy, partial-result list and suspected-version discounts; notebook 13 is unchanged.
 - [Strict matching runbook](docs/strict_matching_runbook.md): notebook 14's settings, output changes and evaluation limits.
+- [Read-only app](app/app.py): Streamlit interface using the existing SQL warehouse, AI Search index and unchanged notebook 14 policy.
+- [App deployment runbook](docs/app_runbook.md): source upload, minimal service-principal permissions, deployment and live checks.
 
 The user-confirmed Silver v2 build has seven verified identities, 440 researcher–work
 links, 439 contribution groups (437 eligible), and 534 topic-score rows. SQL 08's
@@ -72,12 +74,17 @@ local tests and a full-collection evidence replay. The user subsequently ran it
 successfully in Databricks; evidence review exposed topic-label-only matches and
 suspected publication versions. Next: import the separate notebook 14 and run
 validate → match → evaluate, following the strict matching runbook. Notebook 13
-is preserved. Notebook 14's live execution and human relevance evaluation remain
-outstanding. Do not recreate the index. No new identity approvals,
-Bronze uploads or Gold rebuilds are needed. The application remains a later stage.
+is preserved. The user subsequently confirmed notebook 14's live runs and approved
+continuation. The read-only app is now implemented locally; independent relevance
+labels and live app deployment/acceptance remain outstanding. Next: follow the app
+runbook, uploading only the `app` folder contents as workspace files. Do not recreate
+the index. No new identity approvals, Bronze uploads or Gold rebuilds are needed.
 
 ## Run offline tests
 
 ```sh
 python3 -m unittest discover -s tests -v
 ```
+
+App UI tests also require `app/requirements.txt` in your environment; otherwise
+they are explicitly skipped. See the app runbook for the complete test command.
