@@ -1,5 +1,12 @@
 # Evidence-backed researcher matching — notebook 13
 
+**Baseline preserved:** the user completed notebook 13's live evaluation and shared
+three detailed topic results. Review found topic-label-only subject support and a
+suspected preprint/conference pair. Use the separate
+[notebook 14 runbook](strict_matching_runbook.md) for the stricter comparison;
+notebook 13's code remains unchanged. The checkpoint below records its original
+implementation state, not a pending request to rerun it.
+
 ## Current checkpoint
 
 The user confirmed notebook 12's full index-content check and all 16 live search

@@ -1,7 +1,7 @@
 # ResearchMatch AI — Product and Data Plan
 
 **Status:** Current source of truth  
-**Last updated:** 2026-09-18
+**Last updated:** 2026-09-23
 **Platform:** Databricks Free Edition  
 
 This MVP builds evidence-based profiles of Zayed University researchers and matches a user-supplied research topic to suitable ZU collaborators or a complementary research team. Public directory observations do not establish current employment or collaboration availability; the pilot labels this limitation explicitly.
@@ -19,8 +19,17 @@ and all 16 live search checks. These are smoke checks, not independently labelle
 relevance accuracy. Notebook 13 now implements evidence-backed matching using the
 same index, with explicit uncalibrated lexical screening and insufficient-evidence
 responses. All 172 offline tests pass, and a full-collection evidence-policy replay
-completed. Notebook 13 still needs user execution in Databricks and human relevance
-review. Do not recreate resources. No app has been built. Broader profile coverage,
+completed. The user subsequently ran notebook 13 successfully in Databricks and
+provided three detailed evidence results. Review exposed topic-label-only subject
+support, partial coverage and a suspected preprint/conference pair. A separate
+notebook 14 now implements `matching_v2_direct_evidence`, retaining notebook 13
+unchanged for comparison. It requires direct title/abstract support, separates
+partial candidates and discounts same-title display/ranking support without merging
+records. All 210 local tests pass; the full local replay completed for 12 smoke and
+12 reserved prompts and flagged 19 unverified same-title groups. Notebook 14 still
+needs user execution and human relevance evaluation. The reserved replay exposed
+remaining lexical false positives in partial results; no accuracy claim is made.
+Do not recreate resources. No app has been built. Broader profile coverage,
 verified funding and team matching remain
 later milestones, not completed features.
 
@@ -747,21 +756,28 @@ Still to implement or validate:
 - expand the reviewed subset of researcher–OpenAlex links and verify derived relationships;
 - resolve remaining cross-campus profile duplicates and ambiguous work/identity mappings;
 - implement approved institutional awards and researcher-award attribution when available;
-- run notebook 13's validate/match/evaluate modes in Databricks;
+- run the separate notebook 14's validate/match/evaluate modes in Databricks;
 - independently review matching evidence and held-out topics, then refine the policy
   before building the application.
 
 ## 17. Immediate next task
 
-Follow [`matching_runbook.md`](matching_runbook.md): import notebook 13,
+Follow [`strict_matching_runbook.md`](strict_matching_runbook.md): import notebook 14,
 keep endpoint `vs_endpoint_1` and model `databricks-gte-large-en`, then run all cells
-with mode=validate. Follow with mode=match for medical imaging and forensics, and
+with mode=validate. Follow with mode=match for medical imaging, forensics and transport, and
 mode=evaluate for the compact smoke summary. The user runs these steps personally.
 Do not repeat resource creation, identity approvals, Bronze ingestion, the completed
 Silver v2 upgrade or Gold build. Share validation counts, query checks and cited
 evidence before UI work. Use [`matching_evaluation_review.md`](matching_evaluation_review.md)
 for independent relevance judgements before claiming quality. Do not advertise
 unreviewed profiles as verified matches or preprints as peer-reviewed articles.
+
+Notebook 13 stays unchanged. In notebook 14, source topic labels are review context
+only. Full-query candidates require all interpreted terms in one title/abstract;
+partial results remain separate, and required terms must be directly supported.
+Same-title records are flagged as unverified possible versions, displayed once and
+discounted for ranking support, never merged in Delta. This can increase false
+abstentions; do not claim validated accuracy from passing tests or familiar topics.
 
 This pilot is intentionally limited to the seven verified researchers. Remaining
 116 identity candidates stay pending; coauthor edges and researcher-award links

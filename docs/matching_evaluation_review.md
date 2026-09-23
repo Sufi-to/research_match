@@ -5,6 +5,12 @@ the algorithm's ranking, use the seven profiles' eligible publication evidence t
 record acceptable candidates (or no supported candidate), specific supporting
 publication IDs, missing evidence and ambiguity. Names alone are not sufficient.
 
+Notebook 14's offline replay includes H01–H12 as a frozen-policy observation set,
+not as automatic labels. No relevance tuning is performed against those outputs.
+If they are later used to change the policy, reserve a new unseen test set. Review
+full and partial candidate lists separately and count false abstentions as well as
+unsupported recommendations.
+
 Use `supported`, `partial`, `insufficient`, or `refine` for the human judgement.
 For scientific relevance, consult a qualified reviewer where necessary. Mark a
 topic uncertain when the collected data cannot support a judgement.
