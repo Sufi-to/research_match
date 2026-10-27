@@ -75,10 +75,16 @@ successfully in Databricks; evidence review exposed topic-label-only matches and
 suspected publication versions. Next: import the separate notebook 14 and run
 validate → match → evaluate, following the strict matching runbook. Notebook 13
 is preserved. The user subsequently confirmed notebook 14's live runs and approved
-continuation. The read-only app is now implemented locally; independent relevance
-labels and live app deployment/acceptance remain outstanding. Next: follow the app
-runbook, uploading only the `app` folder contents as workspace files. Do not recreate
-the index. No new identity approvals, Bronze uploads or Gold rebuilds are needed.
+continuation. On 2026-10-27, Free Edition had removed the idle `vs_endpoint_1`;
+it was recreated under the same name and the index rebuilt from unchanged Gold
+(`9c1571ed…`, source version 2). Notebook 12's content scan passed and all 16
+search checks reproduced the original results. The app is deployed as
+`researchmatch-pilot`. Its connection check returned 7 researchers, 437 eligible
+publications and 19 same-title groups, and the user reported good results from
+their own live searches. Independent relevance labels remain outstanding, so no
+accuracy claim is made. Next: independent relevance review using the
+[manual evaluation template](docs/matching_evaluation_review.md), then broader
+profile coverage. No new identity approvals, Bronze uploads or Gold rebuilds are needed.
 
 ## Run offline tests
 

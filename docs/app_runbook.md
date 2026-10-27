@@ -89,6 +89,21 @@ their `_current` views. It checks identity-decision history but does not approve
 write identities. `SELECT` on an entire schema, ownership, `MODIFY` and `ALL PRIVILEGES`
 are not needed. Restrict access to the source-code folder appropriately as well.
 
+Also give the service principal **CAN_USE** on the AI Search endpoint `vs_endpoint_1`
+(Compute → AI Search → endpoint → Permissions). Table grants do not cover the
+endpoint, and without it the connection check fails with `PermissionDenied`. A
+recreated endpoint starts without this entry. CLI equivalent (additive `update`,
+not `set`):
+
+```sh
+databricks permissions update vector-search-endpoints <endpoint-id> --json \
+  '{"access_control_list":[{"service_principal_name":"<app-sp-application-id>","permission_level":"CAN_USE"}]}'
+```
+
+App `.py` files must not contain notebook markers (`# Databricks notebook source`,
+`# COMMAND`, `# MAGIC`). Databricks converts such files to notebooks in the
+deployment snapshot, and the import then fails. `tests/test_app.py` checks this.
+
 If endpoint metadata/scan access is denied, inspect permissions on the **existing**
 endpoint/index and share the access error category. Do not grant ownership or
 disable content checks as a shortcut. If a live search specifically reports an
@@ -148,10 +163,11 @@ contain a reference and exception type, not raw SQL/API messages or user queries
 
 ## Local verification and limits
 
-Checkpoint: **231 tests passed with no skips** in the app-enabled local environment,
-including four Streamlit interaction tests and the SQL-adapter/service composition
-test. Dependency compatibility checks also passed. Live Databricks app deployment
-has not been tested.
+Checkpoint: **232 tests passed with no skips** in the app-enabled local environment,
+including four Streamlit interaction tests, the SQL-adapter/service composition
+test and the no-notebook-markers check. Deployed 2026-10-27 as `researchmatch-pilot`
+from `/Workspace/Users/<you>/researchmatch-app`. The user confirmed the connection
+check and reported good results from their own live searches.
 
 ```sh
 python3 -m venv .venv
@@ -167,7 +183,8 @@ the user-run deployment. Tests mock live APIs and exercise SQL decoding, paginat
 lineage failures, policy parity, safe links, form submission and stale-result clearing.
 They cannot prove your app service principal's permissions or warehouse compatibility.
 
-No app deployment has been performed by the coding agent. Keep the deployment
-private until the live connection check, notebook comparison and user acceptance
-are complete. Independent relevance labelling remains outstanding, despite the
-user approving continuation to this UI pilot.
+Keep the deployment private to you and approved pilot reviewers. Independent
+relevance labelling remains outstanding, despite the user's acceptance of the
+pilot. Free Edition stops apps after up to 24 hours and can remove an idle AI Search
+endpoint. If checks fail later, confirm `vs_endpoint_1` still exists before
+anything else.

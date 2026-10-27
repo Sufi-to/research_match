@@ -1,7 +1,7 @@
 # ResearchMatch AI — Product and Data Plan
 
 **Status:** Current source of truth  
-**Last updated:** 2026-09-23
+**Last updated:** 2026-10-27
 **Platform:** Databricks Free Edition  
 
 This MVP builds evidence-based profiles of Zayed University researchers and matches a user-supplied research topic to suitable ZU collaborators or a complementary research team. Public directory observations do not establish current employment or collaboration availability; the pilot labels this limitation explicitly.
@@ -32,10 +32,15 @@ two refinement outcomes) and approved continuing to the UI pilot. Independent
 relevance labels were not supplied. The reserved replay exposed
 remaining lexical false positives in partial results; no accuracy claim is made.
 The read-only Streamlit app is now implemented locally, reusing notebook 14's
-unchanged policy and the existing SQL warehouse/index. Live app service-principal
-permissions, deployment and user acceptance remain unverified. No app resources
-were provisioned by the coding agent. All 231 tests pass in the app-enabled local
-environment, including UI and SQL-adapter checks. Do not recreate data/search resources. Broader profile coverage,
+unchanged policy and the existing SQL warehouse/index. On 2026-10-27 the idle
+`vs_endpoint_1` (removed by Free Edition) was recreated under the same name and
+the index rebuilt from unchanged Gold. The content scan and all 16 search checks
+passed. The app was deployed as `researchmatch-pilot` with read-only grants plus
+CAN_USE on the endpoint. The user confirmed the in-app connection check (7
+researchers, 437 publications, 19 same-title groups) and reported good results
+from their own live searches. These are pilot acceptance checks, not independent
+relevance labels. All 232 tests pass locally. Do not recreate data/search resources
+unless they are missing. Independent relevance review, broader profile coverage,
 verified funding and team matching remain
 later milestones, not completed features.
 
