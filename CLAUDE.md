@@ -55,6 +55,15 @@ venv suddenly reports missing packages or no `pip`, check that link first.
 App UI tests are skipped (not failed) when `app/requirements.txt` isn't installed;
 `test_collect_sources` errors on import if `requests` isn't installed.
 
+## Project skills (`.claude/skills/`)
+
+- `rm-databricks-run`: run workspace notebooks as one-time jobs and read their output;
+  read-only SQL checks; rebuild order and Free Edition traps (`references/rebuild.md`).
+- `rm-app-deploy`: upload `app/`, verify the workspace copy byte-for-byte, redeploy,
+  and check the app's grants.
+- `rm-pre-push`: scan unpushed commits for emails, workspace details and secrets
+  before any push (the GitHub repo is public).
+
 ## Conventions and invariants
 
 - **Notebooks default to validate-only.** Writes/mutations happen only through an
