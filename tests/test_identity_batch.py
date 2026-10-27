@@ -11,10 +11,14 @@ import sqlite3
 import unittest
 import uuid
 
-SQL = (Path(__file__).resolve().parents[1] / "sql/07_review_identity_batch_02.sql").read_text()
+ROOT = Path(__file__).resolve().parents[1]
 
 
 class IdentityBatchTests(unittest.TestCase):
+    SQL = (ROOT / "sql/07_review_identity_batch_02.sql").read_text()
+    PREFIX = "rm_batch02"
+    NAMES = {"Ahmed Shuhaiber", "Andrew Marrington", "Dima Rabadi", "Fatma Outay", "Graham Manville"}
+
     def setUp(self):
         self.db = sqlite3.connect(":memory:")
         self.addCleanup(self.db.close)
@@ -37,7 +41,7 @@ class IdentityBatchTests(unittest.TestCase):
             (decision_id, candidate_id, evidence_hash, decision, rationale, reviewed_by, reviewed_at);
         """)
         # Remove comments before splitting; semicolons in comments are not SQL.
-        adapted = re.sub(r"--[^\n]*", "", SQL)
+        adapted = re.sub(r"--[^\n]*", "", self.SQL)
         adapted = re.sub(r"USE (CATALOG|SCHEMA) \w+;", "", adapted)
         adapted = adapted.replace("CREATE OR REPLACE TEMP VIEW", "CREATE TEMP VIEW")
         adapted = adapted.replace("current_timestamp()", "CURRENT_TIMESTAMP")
@@ -53,7 +57,7 @@ class IdentityBatchTests(unittest.TestCase):
                 self.db.execute(statement)
         self.insert = next(s for s in statements if s.startswith("INSERT INTO identity_decisions"))
         self.previews = [s for s in statements if s.startswith("SELECT")]
-        self.targets = self.db.execute("SELECT * FROM rm_batch02_targets").fetchall()
+        self.targets = self.db.execute("SELECT * FROM " + self.PREFIX + "_targets").fetchall()
         for i, (_, cid, aid, orcid, evidence) in enumerate(self.targets):
             self.db.execute("INSERT INTO entity_resolution_review_current VALUES (?,?,?,?,?,?,?)",
                             (cid, str(i), aid, evidence, "profile_orcid", "pending", "[]"))
@@ -62,8 +66,8 @@ class IdentityBatchTests(unittest.TestCase):
             self.db.execute("INSERT INTO authors_current VALUES (?,?)", (aid, orcid))
 
     def enable(self):
-        self.db.executescript("""DROP VIEW rm_batch02_permission;
-          CREATE TEMP VIEW rm_batch02_permission AS SELECT true AS approve_reviewed_batch;""")
+        self.db.executescript("DROP VIEW {0}_permission; CREATE TEMP VIEW {0}_permission AS "
+                              "SELECT true AS approve_reviewed_batch;".format(self.PREFIX))
 
     def count(self):
         return self.db.execute("SELECT COUNT(*) FROM identity_decisions").fetchone()[0]
@@ -76,13 +80,12 @@ class IdentityBatchTests(unittest.TestCase):
     def assert_blocked(self):
         self.enable()
         before = self.count()
-        self.assertEqual(self.db.execute("SELECT all_checks_pass FROM rm_batch02_gate").fetchone()[0], 0)
+        self.assertEqual(self.db.execute("SELECT all_checks_pass FROM " + self.PREFIX + "_gate").fetchone()[0], 0)
         self.db.execute(self.insert)
         self.assertEqual(self.count(), before)
 
     def test_exact_whitelist_and_hashes(self):
-        self.assertEqual({t[0] for t in self.targets}, {
-            "Ahmed Shuhaiber", "Andrew Marrington", "Dima Rabadi", "Fatma Outay", "Graham Manville"})
+        self.assertEqual({t[0] for t in self.targets}, self.NAMES)
         for _, cid, aid, orcid, evidence in self.targets:
             self.assertRegex(cid, r"^[a-f0-9]{64}$")
             self.assertRegex(evidence, r"^[a-f0-9]{64}$")
@@ -98,18 +101,18 @@ class IdentityBatchTests(unittest.TestCase):
     def test_deliberate_accept_and_rerun_before_and_after_build(self):
         self.enable()
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), 5)
+        self.assertEqual(self.count(), len(self.NAMES))
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), 5)
+        self.assertEqual(self.count(), len(self.NAMES))
         self.db.execute("UPDATE entity_resolution_review_current SET status='verified'")
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), 5)
+        self.assertEqual(self.count(), len(self.NAMES))
 
     def test_existing_accept_is_not_duplicated(self):
         self.add_decision("accept")
         self.enable()
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), 5)
+        self.assertEqual(self.count(), len(self.NAMES))
 
     def test_changed_evidence_blocks_entire_batch(self):
         self.db.execute("UPDATE entity_resolution_review_current SET evidence_hash='changed' WHERE researcher_id='0'")
@@ -157,6 +160,18 @@ class IdentityBatchTests(unittest.TestCase):
     def test_quality_flag_blocks_entire_batch(self):
         self.db.execute("UPDATE entity_resolution_review_current SET quality_flags='[\"orcid_conflict\"]' WHERE researcher_id='0'")
         self.assert_blocked()
+
+
+class IdentityBatch03Tests(IdentityBatchTests):
+    SQL = (ROOT / "sql/15_review_identity_batch_03.sql").read_text()
+    PREFIX = "rm_batch03"
+    NAMES = {"Ahmad Wazan", "Alena Connolly", "Asad Khattak", "Babar Shah", "Basel Almourad", "Fatma Taher"}
+
+    def test_no_overlap_with_batch_02(self):
+        earlier = IdentityBatchTests.SQL
+        for _, cid, aid, _, _ in self.targets:
+            self.assertNotIn(cid, earlier)
+            self.assertNotIn(aid, earlier)
 
 
 if __name__ == "__main__":
