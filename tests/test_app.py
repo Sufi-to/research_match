@@ -115,6 +115,11 @@ class AppContractTests(unittest.TestCase):
                     and not (isinstance(n, ast.FunctionDef) and n.name == "run_notebook")]
         self.assertEqual(elements(original), elements(mirrored))
 
+    def test_app_sources_are_not_notebooks(self):
+        # Databricks turns marked .py files into notebooks in the app snapshot; imports then fail.
+        for path in (ROOT / "app").rglob("*.py"):
+            self.assertNotRegex(path.read_text(), r"(?m)^# (Databricks notebook source|COMMAND -{5,}|MAGIC )", path.name)
+
     def test_safe_links(self):
         for url in ("https://doi.org/10.1/abc", "https://openalex.org/W1", "https://www.zu.ac.ae/main"):
             self.assertEqual(safe_url(url), url)

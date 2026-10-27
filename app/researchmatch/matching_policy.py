@@ -1,15 +1,6 @@
 """Mirrored notebook 14 policy/read helpers. AST parity is tested; no notebook execution."""
-# Databricks notebook source
-# MAGIC %md
-# MAGIC # ResearchMatch — strict direct-evidence matching pilot
-# MAGIC Run All with default mode=validate first. Uses existing Gold and AI Search only.
-# MAGIC No resource creation/sync, Delta writes, LLM calls, new embedding model or Lakebase.
-# MAGIC Set widget execution behavior to Do Nothing before changes.
-# MAGIC This is a conservative, uncalibrated English-language pilot, not a suitability guarantee.
-# MAGIC Notebook 13 is preserved. Topic labels cannot establish missing subject evidence.
-# MAGIC See docs/strict_matching_runbook.md.
-
-# COMMAND ----------
+# No notebook header/cell markers: Databricks would convert this file to a
+# notebook in the app snapshot, making it unimportable.
 
 from collections import defaultdict
 import hashlib
@@ -225,7 +216,6 @@ def validate_results(rows, docs):
         if not original or any(row[k] != original[k] for k in RESULT_COLUMNS):
             raise ValueError("Search returned stale or non-pilot identity/content")
 
-# COMMAND ----------
 
 MATCH_POLICY = "matching_v2_direct_evidence"
 MIN_ANCHOR_COVERAGE = 0.60  # Applies to direct title/abstract terms ONLY; provisional partial-match gate.
