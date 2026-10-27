@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "app"))
-from researchmatch import matching_policy as policy, service
+from researchmatch import matching_policy as policy, service, team as teams
 from researchmatch.presentation import safe_url
 from researchmatch.warehouse import Warehouse, WarehouseError, decode
 from test_matching import fixture
@@ -237,6 +237,75 @@ class AppContractTests(unittest.TestCase):
         self.assertTrue(all("Blockchain" not in s for s in seen_queries))
 
 
+def person(name, *evidence_terms):
+    evidence = [{"matched_in_title": list(t), "matched_in_abstract": []} for t in evidence_terms]
+    return {"researcher_id": name, "display_name": name, "evidence": evidence}
+
+
+def team_result(terms, direct=(), partial=()):
+    return {"interpreted_terms": sorted(terms), "candidates": list(direct), "partial_candidates": list(partial)}
+
+
+class TeamTests(unittest.TestCase):
+    def names(self, team):
+        return [(m["role"], m["candidate"]["display_name"], m["terms_added"]) for m in team["members"]]
+
+    def test_complements_cover_missing_terms(self):
+        result = team_result({"iot", "security", "medical"}, partial=[
+            person("A", {"iot", "medical"}), person("B", {"iot"}), person("C", {"security"})])
+        team = teams.assemble(result, 3)
+        self.assertEqual(self.names(team), [("Lead", "A", ["iot", "medical"]), ("Complement", "C", ["security"])])
+        self.assertEqual((team["status"], team["uncovered_terms"]), ("full", []))
+
+    def test_direct_lead_needs_no_complement(self):
+        result = team_result({"a", "b"}, direct=[person("D", {"a", "b"})], partial=[person("P", {"a"})])
+        team = teams.assemble(result, 4)
+        self.assertEqual(self.names(team), [("Lead", "D", ["a", "b"])])
+        self.assertEqual(team["status"], "full")
+
+    def test_uncovered_terms_reported_and_duplicates_skipped(self):
+        result = team_result({"a", "b", "c"}, partial=[person("X", {"a"}), person("Y", {"a"}), person("Z", {"b"})])
+        team = teams.assemble(result, 4)
+        self.assertEqual([m["candidate"]["display_name"] for m in team["members"]], ["X", "Z"])
+        self.assertEqual((team["status"], team["uncovered_terms"]), ("partial", ["c"]))
+
+    def test_team_size_limit_and_tie_order(self):
+        result = team_result({"a", "b", "c"}, direct=[], partial=[person("P1", {"a"}), person("P2", {"b"}), person("P3", {"c"})])
+        team = teams.assemble(result, 2)
+        self.assertEqual([m["candidate"]["display_name"] for m in team["members"]], ["P1", "P2"])
+        self.assertEqual(team["uncovered_terms"], ["c"])
+
+    def test_direct_wins_ties_and_only_displayed_evidence_counts(self):
+        direct = person("D", {"a"})
+        partial = person("P", {"a"})
+        partial["best_evidence_missing_terms"] = []  # Not displayed evidence: ignored.
+        team = teams.assemble(team_result({"a", "b"}, [direct], [partial]), 2)
+        self.assertEqual([m["candidate"]["display_name"] for m in team["members"]], ["D"])
+
+    def test_no_terms_or_candidates(self):
+        for result in (team_result(set()), team_result({"a"}), {"candidates": [], "partial_candidates": []}):
+            team = teams.assemble(result, 2)
+            self.assertEqual((team["members"], team["status"]), ([], "none"))
+
+    def test_invalid_size(self):
+        for size in (1, 5, "2"):
+            with self.assertRaises(ValueError):
+                teams.assemble(team_result({"a"}), size)
+
+    def test_real_policy_output(self):
+        docs, data, snap = fixture()
+        ev = policy.prepare_evidence(docs, data, "gold", "silver")
+        rows = [{k: d[k] for k in policy.RESULT_COLUMNS} for d in docs]
+        result = policy.match_candidates(policy.query_plan("Blockchain information security"), rows, ev, snap)
+        team = teams.assemble(result, 3)
+        terms = set(result["interpreted_terms"])
+        shown = {(c["researcher_id"]) for c in result["candidates"] + result["partial_candidates"]}
+        for member in team["members"]:
+            self.assertIn(member["candidate"]["researcher_id"], shown)
+            self.assertTrue(set(member["terms_added"]) <= teams.coverage(member["candidate"], terms))
+        self.assertEqual(set(team["uncovered_terms"]) | {t for m in team["members"] for t in m["terms_added"]}, terms)
+
+
 try:
     from streamlit.testing.v1 import AppTest
 except ImportError:
@@ -283,6 +352,24 @@ class UITests(unittest.TestCase):
             self.assertEqual(len(at.exception), 0)
             self.assertTrue(any("Missing terms: information" in text.value for text in at.text))
             self.assertTrue(any("Partial evidence" in caption.value for caption in at.caption))
+
+    def test_team_mode_renders_with_one_backend_call(self):
+        docs, data, snap = fixture()
+        ev = policy.prepare_evidence(docs, data, "gold", "silver")
+        rows = [{k: d[k] for k in policy.RESULT_COLUMNS} for d in docs]
+        result = policy.match_candidates(policy.query_plan("Blockchain information security"), rows, ev, snap)
+        result["checked_at"] = "now"
+        with patch.object(service, "execute", return_value=result) as call:
+            at = self.app().run()
+            at.text_area[0].set_value("Blockchain information security")
+            at.selectbox[0].set_value(1)
+            at.radio[0].set_value("Suggested team")
+            next(b for b in at.button if b.label == "Find evidence-backed candidates").click().run()
+            self.assertEqual(len(at.exception), 0)
+            self.assertEqual(call.call_count, 1)
+            self.assertEqual(call.call_args.args[2], 3)  # Team mode always pools full lists.
+            self.assertTrue(any(s.value.startswith("Suggested team") for s in at.subheader))
+            self.assertTrue(any(c.value.startswith("Lead — covers") for c in at.caption))
 
     def test_empty_submit_does_not_call_backend(self):
         with patch.object(service, "execute") as call:

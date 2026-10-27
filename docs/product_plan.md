@@ -271,17 +271,17 @@ Important Silver fields:
 - active/current flags;
 - record-quality indicators.
 
-### 5.3 Gold: implemented seven-profile pilot
+### 5.3 Gold: implemented verified-profile pilot
 
 | Table | Grain and purpose |
 |---|---|
 | `researcher_profiles` | One verified researcher per build, directory-observed affiliations, counts and templated summary |
-| `researcher_profile_publications` | One eligible representative contribution per researcher/build; 437 pilot evidence rows |
-| `researcher_profile_topics` | One ranked researcher-topic score per build; 534 pilot rows |
-| `researcher_topic_evidence` | One researcher-topic-contribution link per build; 1,170 pilot rows |
+| `researcher_profile_publications` | One eligible representative contribution per researcher/build; 1,024 rows for 13 profiles (437 for the first seven) |
+| `researcher_profile_topics` | One ranked researcher-topic score per build; 1,165 rows for 13 profiles |
+| `researcher_topic_evidence` | One researcher-topic-contribution link per build; 2,803 rows for 13 profiles |
 | `profile_quality_metrics` | Coverage gaps, pending candidates and unresolved-data warnings per profile/build |
 | `researcher_search_document_history` | One bounded, evidence-linked search document per researcher/build |
-| `researcher_search_documents` | Current generated AI Search source projection; seven stable document IDs, CDF enabled |
+| `researcher_search_documents` | Current generated AI Search source projection; one stable document ID per verified researcher, CDF enabled, 365-day history retention |
 | `build_runs` | Frozen Silver versions, fingerprints, snapshot validation status and failures |
 
 The six snapshot tables retain history. `current_build` and the six `*_current`
@@ -453,6 +453,10 @@ without treating unknown funding history as lack of experience.
 
 ### 9.3 Team assembly
 
+**Implemented (first version):** `app/researchmatch/team.py` builds a greedy
+evidence-coverage team from the displayed candidates, covering items 1–3 and 5 below;
+explicit role types beyond lead/complement and collaboration rewards remain future work.
+
 When the user requests a team rather than individuals:
 
 1. choose the strongest lead-topic match;
@@ -490,7 +494,8 @@ a topic form, optional required terms, separate direct/partial evidence lists,
 publication links, preprint/possible-version warnings and build provenance. It
 uses Databricks-managed app authorization and a bounded SQL Statement API adapter,
 not Spark inside the app. Page load does not query data; explicit submissions
-recheck current snapshots. No new team algorithm, LLM or persistence is introduced.
+recheck current snapshots. A "Suggested team" option combines displayed evidence
+coverage (§9.3). No LLM or persistence is introduced.
 See [`app_runbook.md`](app_runbook.md). The features below remain the broader target.
 
 The MVP can be one Databricks App with:
@@ -781,15 +786,13 @@ Still to implement or validate:
 
 ## 17. Immediate next task
 
-Follow [`app_runbook.md`](app_runbook.md): upload only the contents of `app/` as
-workspace files, create one private Databricks App, and attach the existing warehouse
-and index. Grant its service principal only the listed read permissions, deploy,
-then use Check connection and data before submitting topics. The user runs these
-steps personally; no remote deployment has occurred. Do not repeat identity approvals,
-Bronze ingestion, Silver/Gold builds or AI Search creation. Use
-[`matching_evaluation_review.md`](matching_evaluation_review.md)
-for independent relevance judgements before claiming quality. Do not advertise
-unreviewed profiles as verified matches or preprints as peer-reviewed articles.
+The app is deployed and user-confirmed with 13 verified researchers. Next, as
+chosen by the user (no independent reviewer yet): **team suggestions** built from
+displayed evidence coverage (§9.3), then **anonymous feedback capture** stored as app
+state in Lakebase (§10). Use
+[`matching_evaluation_review.md`](matching_evaluation_review.md) for independent
+relevance judgements before claiming quality. Do not advertise unreviewed profiles
+as verified matches or preprints as peer-reviewed articles.
 
 Notebook 13 stays unchanged. In notebook 14, source topic labels are review context
 only. Full-query candidates require all interpreted terms in one title/abstract;
@@ -798,8 +801,8 @@ Same-title records are flagged as unverified possible versions, displayed once a
 discounted for ranking support, never merged in Delta. This can increase false
 abstentions; do not claim validated accuracy from passing tests or familiar topics.
 
-This pilot is intentionally limited to the seven verified researchers. Remaining
-116 identity candidates stay pending; coauthor edges and researcher-award links
+The pilot covers 13 verified researchers (batches 01–03). The remaining 110
+identity candidates stay pending; coauthor edges and researcher-award links
 remain empty. Gold funding is unknown, not zero. Current employment and
 collaboration availability remain unverified directory observations.
 Hold ambiguous split author IDs and cross-campus profile duplicates for separate

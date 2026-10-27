@@ -27,33 +27,59 @@ def show_candidates(st, rows, partial=False):
             if link:
                 st.link_button("ZU profile", link)
             st.caption("Current employment and collaboration availability unconfirmed. Funding history not established.")
-            for n, evidence in enumerate(row["evidence"], 1):
-                with st.expander(f"Supporting publication {n}"):
-                    st.text(evidence["title"])
-                    st.text(f"{evidence['publication_year'] or 'Year unknown'} · {evidence['publication_type']}")
-                    if evidence["is_preprint"]:
-                        st.warning("Preprint — do not assume peer review.")
-                    st.text("Matched in title: " + ", ".join(evidence["matched_in_title"]))
-                    st.text("Matched in abstract: " + ", ".join(evidence["matched_in_abstract"]))
-                    if evidence["abstract_excerpt"]:
-                        st.text(evidence["abstract_excerpt"])
-                    st.text("Missing terms: " + (", ".join(evidence["missing_query_terms"]) or "None"))
-                    if evidence["topic_only_query_terms"]:
-                        st.text("Topic-label-only terms (not used as direct evidence): " + ", ".join(evidence["topic_only_query_terms"]))
-                    url = safe_url(evidence["url"])
-                    if url:
-                        st.link_button("Open publication source", url)
-                    st.caption("Evidence ID: " + evidence["publication_evidence_id"])
-                    if evidence["possible_versions"]:
-                        st.warning("Same-title records: relationship unverified; only one ranking/display slot is used.")
-                        for version in evidence["possible_versions"]:
-                            st.text(version["title"] + " · " + version["publication_type"])
-                            ref = safe_url(version["url"])
-                            if ref:
-                                st.link_button("Possible version source", ref)
+            show_evidence(st, row["evidence"])
 
 
-def show_result(st, result):
+def show_evidence(st, items):
+    for n, evidence in enumerate(items, 1):
+        with st.expander(f"Supporting publication {n}"):
+            st.text(evidence["title"])
+            st.text(f"{evidence['publication_year'] or 'Year unknown'} · {evidence['publication_type']}")
+            if evidence["is_preprint"]:
+                st.warning("Preprint — do not assume peer review.")
+            st.text("Matched in title: " + ", ".join(evidence["matched_in_title"]))
+            st.text("Matched in abstract: " + ", ".join(evidence["matched_in_abstract"]))
+            if evidence["abstract_excerpt"]:
+                st.text(evidence["abstract_excerpt"])
+            st.text("Missing terms: " + (", ".join(evidence["missing_query_terms"]) or "None"))
+            if evidence["topic_only_query_terms"]:
+                st.text("Topic-label-only terms (not used as direct evidence): " + ", ".join(evidence["topic_only_query_terms"]))
+            url = safe_url(evidence["url"])
+            if url:
+                st.link_button("Open publication source", url)
+            st.caption("Evidence ID: " + evidence["publication_evidence_id"])
+            if evidence["possible_versions"]:
+                st.warning("Same-title records: relationship unverified; only one ranking/display slot is used.")
+                for version in evidence["possible_versions"]:
+                    st.text(version["title"] + " · " + version["publication_type"])
+                    ref = safe_url(version["url"])
+                    if ref:
+                        st.link_button("Possible version source", ref)
+
+
+def show_team(st, team):
+    if team["status"] == "none":
+        st.caption("No researcher's displayed publications cover any interpreted term; no team is suggested.")
+        return
+    if team["status"] == "full" and len(team["members"]) == 1:
+        st.caption("One researcher's displayed publications cover every interpreted term; no complement is needed.")
+    if team["uncovered_terms"]:
+        st.warning("No displayed publication covers: " + ", ".join(team["uncovered_terms"]))
+    for member in team["members"]:
+        row = member["candidate"]
+        with st.container(border=True):
+            st.text(row["display_name"])
+            st.caption(f"{member['role']} — " + ("covers " if member["role"] == "Lead" else "adds ")
+                       + ", ".join(member["terms_added"]))
+            st.caption("Suggested by evidence coverage, not a confirmed collaboration. "
+                       "Current employment and availability unconfirmed. Funding history not established.")
+            link = safe_url(row["profile_url"])
+            if link:
+                st.link_button("ZU profile", link)
+            show_evidence(st, row["evidence"])
+
+
+def show_result(st, result, team=None):
     status = result["status"]
     if status == "validation_passed":
         st.success("Connection and evidence validation passed.")
@@ -65,6 +91,9 @@ def show_result(st, result):
             st.warning(result["message"])
         else:
             st.info("Candidates for review, not confirmed collaboration recommendations.")
+        if team is not None:
+            st.subheader(f"Suggested team (up to {team['team_size']})")
+            show_team(st, team)
         st.subheader("Direct query-term matches")
         if not result["candidates"]:
             st.caption("No full-query candidate passed the current rules.")
@@ -80,4 +109,5 @@ def show_result(st, result):
         st.text("Checked at: " + result["checked_at"])
         st.caption("Results are a point-in-time snapshot. Re-submit to check current data. "
                    "Term matching can miss synonyms and admit irrelevant context. "
-                   "No accuracy claim, team assembly or grant-recipient inference is made.")
+                   "No accuracy claim or grant-recipient inference is made. Team suggestions "
+                   "only combine displayed evidence coverage; they are not validated team fit.")

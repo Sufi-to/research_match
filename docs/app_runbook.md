@@ -10,7 +10,15 @@ validated expert recommender. Notebook 14's strict rules are unchanged.
 The source folder is [`app/`](../app). This is a **Databricks App, not another
 notebook**. It displays direct-term candidates separately from partial evidence,
 publication links, missing terms, preprints, possible versions and build provenance.
-It does not assemble teams, infer funding receipt, save searches or capture feedback.
+It does not infer funding receipt, save searches or capture feedback.
+
+**Suggested team** (results option, sizes 2–4) uses the same single search. It picks
+a lead whose displayed publications cover the most interpreted terms, then adds
+people who cover terms nobody else covers yet; anyone adding nothing new is
+skipped. If one person already covers every term, the team is just that lead.
+Terms no displayed publication covers are listed, never filled in. This is
+evidence coverage (`app/researchmatch/team.py`), not validated team fit;
+coauthorship, funding and availability are not used.
 No Lakebase instance is needed for this read-only stage; future persistent app state
 belongs there, not in the research tables.
 

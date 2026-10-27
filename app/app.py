@@ -2,12 +2,13 @@
 import uuid
 import streamlit as st
 
+from researchmatch import team as teams
 from researchmatch.presentation import show_result
 from researchmatch.service import execute
 
 st.set_page_config(page_title="ResearchMatch · ZU pilot", page_icon="🔎", layout="wide")
 st.title("ResearchMatch")
-st.caption("Zayed University · Seven-researcher pilot · Evidence first")
+st.caption("Zayed University · Verified-researcher pilot · Evidence first")
 st.write("Explore potential collaborators through their collected publications.")
 st.info("Experimental matching: direct and partial evidence are shown separately. "
         "Identity verification does not confirm current employment or collaboration availability.")
@@ -27,21 +28,32 @@ with st.form("research_topic_form"):
     required = st.text_input("Required terms (optional)", max_chars=500,
                              help="Terms must already occur in your topic and must be supported directly.")
     top_k = st.selectbox("Maximum people per result list", [3, 2, 1])
+    mode = st.radio("Results", ["Individuals", "Suggested team"], horizontal=True,
+                    help="A team combines researchers whose displayed publications cover different "
+                         "parts of the topic. It uses the same single search.")
+    team_size = st.selectbox("Team size", list(teams.TEAM_SIZES), index=1)
     submit = st.form_submit_button("Find evidence-backed candidates")
 
 if clear:
     st.session_state.pop("last_result", None)
     st.session_state.pop("last_error", None)
+    st.session_state.pop("last_team", None)
 if submit or validate:
     # Clear earlier success before a request, so an error never displays stale success.
     st.session_state.pop("last_result", None)
     st.session_state.pop("last_error", None)
+    st.session_state.pop("last_team", None)
     if submit and (not 3 <= len(topic.strip()) <= 500 or not topic.strip()):
         st.session_state["last_error"] = "Enter a research topic of 3–500 characters."
     else:
         with st.spinner("Checking current data and evidence…"):
             try:
-                st.session_state["last_result"] = execute(None if validate else topic, required, top_k)
+                team_mode = submit and mode == "Suggested team"
+                # Team mode pools the largest lists; team size, not top_k, limits the team.
+                result = execute(None if validate else topic, required, 3 if team_mode else top_k)
+                if team_mode:
+                    st.session_state["last_team"] = teams.assemble(result, team_size)
+                st.session_state["last_result"] = result
             except Exception as error:
                 ref = uuid.uuid4().hex[:10]
                 # Type and reference only: never log query text, token, raw response or SQL.
@@ -53,4 +65,4 @@ if submit or validate:
 if st.session_state.get("last_error"):
     st.error(st.session_state["last_error"])
 if "last_result" in st.session_state:
-    show_result(st, st.session_state["last_result"])
+    show_result(st, st.session_state["last_result"], st.session_state.get("last_team"))
