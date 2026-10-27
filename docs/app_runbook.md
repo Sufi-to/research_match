@@ -19,6 +19,18 @@ skipped. If one person already covers every term, the team is just that lead.
 Terms no displayed publication covers are listed, never filled in. This is
 evidence coverage (`app/researchmatch/team.py`), not validated team fit;
 coauthorship, funding and availability are not used.
+
+**Researcher profiles** (sidebar *View*) lists every verified researcher's most
+frequent publication topics and eligible publications, newest first, with
+same-title records shown once. It loads only when you click *Load researcher
+profiles* and uses the same validated Gold reads as matching, with no search or
+inference, so it is cheaper than a search.
+
+**Error guidance.** Failures name the likely cause and fix (missing or offline
+endpoint, missing index, missing CAN_USE/SELECT, warehouse starting, Gold mid-rebuild,
+data changed mid-request), chosen from the failing step and error type
+(`app/researchmatch/errors.py`). Raw error text is never shown; the app log records
+only the reference, step and error type.
 No Lakebase instance is needed for this read-only stage; future persistent app state
 belongs there, not in the research tables.
 

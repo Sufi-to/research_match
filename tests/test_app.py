@@ -10,7 +10,7 @@ from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "app"))
-from researchmatch import matching_policy as policy, service, team as teams
+from researchmatch import errors, matching_policy as policy, profiles as profile_view, service, team as teams
 from researchmatch.presentation import safe_url
 from researchmatch.warehouse import Warehouse, WarehouseError, decode
 from test_matching import fixture
@@ -106,6 +106,67 @@ class WarehouseTests(unittest.TestCase):
                 decode(value, {"type_name": kind})
 
 
+def fake_workspace(fail=None):
+    """Workspace double serving the fixture through the real SQL adapter.
+
+    fail: optional (path_fragment, exception) raised for matching API paths."""
+    docs, data, _ = fixture()
+    gid = "9c1571ed-a5fb-45e3-8f5f-b066801e7cd5"
+    sid = "3230bb0f-28c7-4830-90b5-5a21034794cb"
+    for d in docs:
+        d.update(gold_build_id=gid, silver_build_id=sid)
+    for rows in data.values():
+        for r in rows:
+            r.update(build_id=gid, silver_build_id=sid)
+    cfg = policy.config(endpoint="vs_endpoint_1", model="databricks-gte-large-en")
+    index = policy.index_spec(cfg, "databricks-gte-large-en")
+    index["status"] = {"ready": True}
+
+    def sql_payload(rows):
+        names = list(rows[0])
+        def kind(v):
+            return "BOOLEAN" if type(v) is bool else "LONG" if type(v) is int else "ARRAY" if isinstance(v, list) else "MAP" if isinstance(v, dict) else "STRING"
+        p = payload()
+        p["manifest"].update(total_row_count=len(rows), schema={"columns": [
+            {"name": n, "type_name": kind(rows[0][n])} for n in names]})
+        def cell(v):
+            return json.dumps(v) if isinstance(v, (list, dict, bool)) else str(v) if v is not None else None
+        p["result"]["data_array"] = [[cell(r[n]) for n in names] for r in rows]
+        return p
+
+    seen_queries = []
+    def api(**kwargs):
+        path = kwargs["path"]
+        if fail and fail[0] in path:
+            raise fail[1]
+        if path == "/api/2.0/sql/statements":
+            sql = kwargs["body"]["statement"]
+            seen_queries.append(sql)
+            target = re.findall(r"`([a-z_]+)`", sql)[-1]
+            if sql.startswith("DESCRIBE HISTORY"):
+                return sql_payload([{"version": 3 if target == "identity_decisions" else 2}])
+            if sql.startswith("DESCRIBE DETAIL"):
+                return sql_payload([{"format": "delta", "properties": {"delta.enableChangeDataFeed": "true"}}])
+            if target == "current_build":
+                gold = "researchmatch_gold" in sql
+                return sql_payload([{"build_id": gid if gold else sid, "silver_build_id": sid,
+                                     "status": "validated", "transform_version": "gold_v1_verified_contributions" if gold else "silver_v2_concept_versions",
+                                     "document_count": len(docs),
+                                     "source_versions_json": '{"identity_decisions": 3}'}])
+            return sql_payload(docs if target == "researcher_search_documents" else data[target])
+        if "/endpoints/" in path:
+            return {"endpoint_type": "STANDARD", "endpoint_status": {"state": "ONLINE"}}
+        if path.endswith("/scan"):
+            return scan_payload(docs)
+        if path.endswith("/query"):
+            return {"manifest": {"columns": [{"name": c} for c in policy.RESULT_COLUMNS]},
+                    "result": {"data_array": [[d[c] for c in policy.RESULT_COLUMNS] for d in docs]}}
+        return index
+    workspace = Mock()
+    workspace.api_client.do.side_effect = api
+    return workspace, seen_queries
+
+
 class AppContractTests(unittest.TestCase):
     def test_policy_matches_notebook_14(self):
         original = ast.parse((ROOT / "notebooks/14_match_researchers_strict.py").read_text())
@@ -178,58 +239,7 @@ class AppContractTests(unittest.TestCase):
             self.run_service("Blockchain security", changed=True)
 
     def test_service_end_to_end_through_real_sql_adapter(self):
-        docs, data, _ = fixture()
-        gid = "9c1571ed-a5fb-45e3-8f5f-b066801e7cd5"
-        sid = "3230bb0f-28c7-4830-90b5-5a21034794cb"
-        for d in docs:
-            d.update(gold_build_id=gid, silver_build_id=sid)
-        for rows in data.values():
-            for r in rows:
-                r.update(build_id=gid, silver_build_id=sid)
-        cfg = policy.config(endpoint="vs_endpoint_1", model="databricks-gte-large-en")
-        index = policy.index_spec(cfg, "databricks-gte-large-en")
-        index["status"] = {"ready": True}
-
-        def sql_payload(rows):
-            names = list(rows[0])
-            def kind(v):
-                return "BOOLEAN" if type(v) is bool else "LONG" if type(v) is int else "ARRAY" if isinstance(v, list) else "MAP" if isinstance(v, dict) else "STRING"
-            p = payload()
-            p["manifest"].update(total_row_count=len(rows), schema={"columns": [
-                {"name": n, "type_name": kind(rows[0][n])} for n in names]})
-            def cell(v):
-                return json.dumps(v) if isinstance(v, (list, dict, bool)) else str(v) if v is not None else None
-            p["result"]["data_array"] = [[cell(r[n]) for n in names] for r in rows]
-            return p
-
-        seen_queries = []
-        def api(**kwargs):
-            path = kwargs["path"]
-            if path == "/api/2.0/sql/statements":
-                sql = kwargs["body"]["statement"]
-                seen_queries.append(sql)
-                target = re.findall(r"`([a-z_]+)`", sql)[-1]
-                if sql.startswith("DESCRIBE HISTORY"):
-                    return sql_payload([{"version": 3 if target == "identity_decisions" else 2}])
-                if sql.startswith("DESCRIBE DETAIL"):
-                    return sql_payload([{"format": "delta", "properties": {"delta.enableChangeDataFeed": "true"}}])
-                if target == "current_build":
-                    gold = "researchmatch_gold" in sql
-                    return sql_payload([{"build_id": gid if gold else sid, "silver_build_id": sid,
-                                         "status": "validated", "transform_version": "gold_v1_verified_contributions" if gold else "silver_v2_concept_versions",
-                                         "document_count": len(docs),
-                                         "source_versions_json": '{"identity_decisions": 3}'}])
-                return sql_payload(docs if target == "researcher_search_documents" else data[target])
-            if "/endpoints/" in path:
-                return {"endpoint_type": "STANDARD", "endpoint_status": {"state": "ONLINE"}}
-            if path.endswith("/scan"):
-                return scan_payload(docs)
-            if path.endswith("/query"):
-                return {"manifest": {"columns": [{"name": c} for c in policy.RESULT_COLUMNS]},
-                        "result": {"data_array": [[d[c] for c in policy.RESULT_COLUMNS] for d in docs]}}
-            return index
-        workspace = Mock()
-        workspace.api_client.do.side_effect = api
+        workspace, seen_queries = fake_workspace()
         result = service.execute("Blockchain security", workspace=workspace,
                                  environ={"DATABRICKS_WAREHOUSE_ID": "test"})
         self.assertEqual(result["status"], "candidates_for_review")
@@ -306,6 +316,88 @@ class TeamTests(unittest.TestCase):
         self.assertEqual(set(team["uncovered_terms"]) | {t for m in team["members"] for t in m["terms_added"]}, terms)
 
 
+class ErrorGuidanceTests(unittest.TestCase):
+    ENV = {"DATABRICKS_WAREHOUSE_ID": "test"}
+
+    def failed(self, fail, query="Blockchain security"):
+        workspace, _ = fake_workspace(fail)
+        with self.assertRaises(Exception) as ctx:
+            service.execute(query, workspace=workspace, environ=self.ENV)
+        message = errors.describe(ctx.exception)
+        self.assertNotIn("SECRET", message)
+        return ctx.exception, message
+
+    def test_missing_endpoint(self):
+        from databricks.sdk.errors import NotFound
+        error, message = self.failed(("/endpoints/", NotFound("SECRET detail")))
+        self.assertEqual(error.researchmatch_stage, "endpoint")
+        self.assertIn("endpoint no longer exists", message)
+
+    def test_endpoint_permission(self):
+        from databricks.sdk.errors import PermissionDenied
+        _, message = self.failed(("/endpoints/", PermissionDenied("SECRET")))
+        self.assertIn("CAN_USE", message)
+
+    def test_missing_index_and_index_permission(self):
+        from databricks.sdk.errors import NotFound, PermissionDenied
+        _, missing = self.failed(("/indexes/", NotFound("SECRET")))
+        _, denied = self.failed(("/indexes/", PermissionDenied("SECRET")))
+        self.assertIn("index is missing", missing)
+        self.assertIn("SELECT on the AI Search index", denied)
+
+    def test_input_message_shown_but_unknown_errors_generic(self):
+        _, message = self.failed(None, query="x")
+        self.assertTrue(message.startswith("Enter a research topic"))
+        self.assertEqual(errors.describe(RuntimeError("SECRET")), errors.GENERIC)
+
+    def test_warehouse_categories(self):
+        from researchmatch.warehouse import WarehouseError, failure_category
+        self.assertEqual(failure_category({"state": "CANCELED"}), "timeout")
+        self.assertEqual(failure_category({"state": "FAILED", "error": {"message": "[INSUFFICIENT_PERMISSIONS] SECRET"}}), "permission")
+        self.assertEqual(failure_category({"state": "FAILED", "error": {"message": "[TABLE_OR_VIEW_NOT_FOUND]"}}), "not_found")
+        self.assertEqual(failure_category({"state": "FAILED"}), "failed")
+        for category, phrase in (("permission", "read access"), ("timeout", "did not answer"), ("not_found", "missing")):
+            error = WarehouseError("SECRET", category)
+            error.researchmatch_stage = "data"
+            self.assertIn(phrase, errors.describe(error))
+
+    def test_failed_sql_keeps_category_not_message(self):
+        w = Mock()
+        w.api_client.do.return_value = {"status": {"state": "FAILED", "error": {"message": "PERMISSION_DENIED: SECRET"}}}
+        reader = Warehouse(w, "id", policy.config())
+        from researchmatch.warehouse import WarehouseError
+        with self.assertRaises(WarehouseError) as ctx:
+            reader.sql("SELECT * FROM `workspace`.`researchmatch_gold`.`current_build`").limit(2).collect()
+        self.assertEqual(ctx.exception.category, "permission")
+        self.assertNotIn("SECRET", str(ctx.exception))
+
+
+class ProfileTests(unittest.TestCase):
+    def test_profiles_use_validated_evidence_without_search(self):
+        workspace, _ = fake_workspace()
+        result = service.profiles(workspace=workspace, environ={"DATABRICKS_WAREHOUSE_ID": "test"})
+        paths = [c.kwargs["path"] for c in workspace.api_client.do.call_args_list]
+        self.assertTrue(all(p.startswith("/api/2.0/sql/statements") for p in paths))  # No endpoint/index/inference.
+        self.assertEqual(result["status"], "profiles")
+        docs, _, _ = fixture()
+        self.assertEqual(len(result["profiles"]), len(docs))
+        names = [p["display_name"] for p in result["profiles"]]
+        self.assertEqual(names, sorted(names, key=str.lower))
+
+    def test_profile_contents(self):
+        docs, data, _ = fixture()
+        ev = policy.prepare_evidence(docs, data, "gold", "silver")
+        for p in profile_view.build(ev):
+            own = ev["by_person"][p["researcher_id"]]
+            self.assertEqual(len(p["publications"]), len({i["display_group_id"] for i in own}))
+            years = [x["publication_year"] or 0 for x in p["publications"]]
+            self.assertEqual(years, sorted(years, reverse=True))
+            counts = [t["contribution_count"] for t in p["top_topics"]]
+            self.assertEqual(counts, sorted(counts, reverse=True))
+            self.assertLessEqual(len(counts), profile_view.MAX_TOPICS)
+            self.assertEqual(p["eligible_contribution_count"], len(own))
+
+
 try:
     from streamlit.testing.v1 import AppTest
 except ImportError:
@@ -370,6 +462,31 @@ class UITests(unittest.TestCase):
             self.assertEqual(call.call_args.args[2], 3)  # Team mode always pools full lists.
             self.assertTrue(any(s.value.startswith("Suggested team") for s in at.subheader))
             self.assertTrue(any(c.value.startswith("Lead — covers") for c in at.caption))
+
+    def test_profiles_view_loads_only_on_click(self):
+        docs, data, _ = fixture()
+        loaded = {"status": "profiles", "profiles": profile_view.build(policy.prepare_evidence(docs, data, "gold", "silver")),
+                  "gold_build_id": "gold", "checked_at": "now"}
+        with patch.object(service, "profiles", return_value=loaded) as call, patch.object(service, "execute") as run:
+            at = self.app().run()
+            next(r for r in at.sidebar.radio if r.label == "View").set_value("Researcher profiles").run()
+            call.assert_not_called()
+            next(b for b in at.button if b.label == "Load researcher profiles").click().run()
+            self.assertEqual(len(at.exception), 0)
+            self.assertEqual(call.call_count, 1)
+            run.assert_not_called()
+            self.assertIn(loaded["profiles"][0]["display_name"], [s.value for s in at.subheader])
+
+    def test_specific_error_guidance_shown(self):
+        from databricks.sdk.errors import NotFound
+        error = NotFound("SECRET")
+        error.researchmatch_stage = "endpoint"
+        with patch.object(service, "execute", side_effect=error):
+            at = self.app().run()
+            at.text_area[0].set_value("Blockchain security")
+            next(b for b in at.button if b.label == "Find evidence-backed candidates").click().run()
+            self.assertIn("endpoint no longer exists", at.error[0].value)
+            self.assertNotIn("SECRET", at.error[0].value)
 
     def test_empty_submit_does_not_call_backend(self):
         with patch.object(service, "execute") as call:

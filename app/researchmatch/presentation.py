@@ -79,6 +79,36 @@ def show_team(st, team):
             show_evidence(st, row["evidence"])
 
 
+def show_profile(st, profile):
+    st.subheader(profile["display_name"])
+    st.caption(f"College: {profile['college_codes_text'] or 'not recorded'} · "
+               f"{profile['eligible_contribution_count']} eligible publications · "
+               f"{profile['eligible_preprint_count']} preprints · "
+               f"{profile['possible_version_group_count']} same-title groups (not merged)")
+    st.caption("Identity verified against the ZU directory and ORCID. Current employment, availability "
+               "and funding history are not established.")
+    link = safe_url(profile["profile_url"])
+    if link:
+        st.link_button("ZU profile", link)
+    st.markdown("**Most frequent publication topics**")
+    st.caption("Number of eligible publications classified under each topic. Topic labels are "
+               "classification context, not a claim of expertise.")
+    for topic in profile["top_topics"]:
+        st.text(f"{topic['topic_name']} · {topic['contribution_count']}")
+    st.markdown(f"**Publications** ({len(profile['publications'])} shown, newest first)")
+    for pub in profile["publications"]:
+        with st.expander(f"{pub['publication_year'] or 'Year unknown'} · {pub['title']}"):
+            st.text(pub["publication_type"])
+            if pub["is_preprint"]:
+                st.warning("Preprint — do not assume peer review.")
+            if pub["possible_version_count"]:
+                st.warning(f"{pub['possible_version_count']} same-title records; relationship unverified, shown once.")
+            url = safe_url(pub["url"])
+            if url:
+                st.link_button("Open publication source", url)
+            st.caption("Evidence ID: " + pub["publication_evidence_id"])
+
+
 def show_result(st, result, team=None):
     status = result["status"]
     if status == "validation_passed":

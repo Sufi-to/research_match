@@ -11,7 +11,22 @@ MAX_ROWS = 25001  # Largest EVIDENCE_LIMITS value + 1; the byte limit still appl
 
 
 class WarehouseError(RuntimeError):
-    pass
+    # category is a fixed label for user-facing guidance; raw SQL errors are never kept.
+    def __init__(self, message, category="failed"):
+        super().__init__(message)
+        self.category = category
+
+
+def failure_category(status):
+    if status.get("state") in ("PENDING", "RUNNING", "CANCELED", "CLOSED"):
+        return "timeout"
+    error = status.get("error") or {}
+    text = (str(error.get("error_code", "")) + " " + str(error.get("message", ""))).upper()
+    if "PERMISSION_DENIED" in text or "INSUFFICIENT_PERMISSIONS" in text:
+        return "permission"
+    if "NOT_FOUND" in text or "DOES_NOT_EXIST" in text:
+        return "not_found"
+    return "failed"
 
 
 class Row(dict):
@@ -102,7 +117,8 @@ class Warehouse:
             "on_wait_timeout": "CANCEL", "byte_limit": 16 * 1024 * 1024})
         if response.get("status", {}).get("state") != "SUCCEEDED":
             # Do not expose raw SQL errors, credentials, query contents or response URLs.
-            raise WarehouseError("SQL did not complete. Check warehouse status, permissions or quota; retry manually.")
+            raise WarehouseError("SQL did not complete. Check warehouse status, permissions or quota; retry manually.",
+                                 failure_category(response.get("status", {})))
         manifest = response.get("manifest", {})
         columns = manifest.get("schema", {}).get("columns", [])
         names = [c["name"] for c in columns]
