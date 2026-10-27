@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # ResearchMatch AI Search — seven verified researchers
+# MAGIC # ResearchMatch AI Search — verified researchers
 # MAGIC Default `discover` only lists resources and checks Gold. No inference or writes.
 # MAGIC Run All. Set widget execution behavior to **Do Nothing** before changing mode.
 # MAGIC Modes: discover → probe → create → status → test. `sync` is for later Gold refreshes.
@@ -27,7 +27,7 @@ SYNC_COLUMNS = ["document_id", "researcher_id", "display_name", "profile_url", "
                 "affiliation_status", "funding_status", "is_searchable"]
 RESULT_COLUMNS = ["document_id", "researcher_id", "display_name", "gold_build_id",
                   "silver_build_id", "search_text_sha256"]
-MAX_PROFILES = 7  # Deliberately fixed to the approved first retrieval pilot.
+MAX_PROFILES = 50  # Upper bound, as in Gold; the actual count comes from the build.
 BASE = "/api/2.0/vector-search"
 TEST_QUERIES = [
     ("blockchain", "Blockchain applications for information security", ["Abdallah Tubaishat"]),
@@ -97,10 +97,12 @@ def index_path(cfg, suffix=""):
     return BASE + "/indexes/" + quote(cfg["index"], safe="") + suffix
 
 
-def validate_documents(docs, gold_build, silver_build):
-    if len(docs) != MAX_PROFILES or len({d["document_id"] for d in docs}) != MAX_PROFILES:
-        raise ValueError("Expected exactly seven unique Gold search documents")
-    if len({d["researcher_id"] for d in docs}) != MAX_PROFILES:
+def validate_documents(docs, gold_build, silver_build, expected):
+    # expected = the published Gold build's document_count; MAX_PROFILES is the hard upper bound.
+    if (type(expected) is not int or not 1 <= expected <= MAX_PROFILES
+            or len(docs) != expected or len({d["document_id"] for d in docs}) != expected):
+        raise ValueError("Gold search documents do not match the published build's document count")
+    if len({d["researcher_id"] for d in docs}) != expected:
         raise ValueError("Gold researcher IDs must be unique")
     for d in docs:
         text = d["search_text"]
@@ -142,7 +144,7 @@ def source_snapshot(spark, cfg):
     docs = [r.asDict(recursive=True) for r in spark.sql(
         "SELECT " + ", ".join(SYNC_COLUMNS) + f" FROM {table} VERSION AS OF {version}"
     ).limit(MAX_PROFILES + 1).collect()]
-    validate_documents(docs, g["build_id"], s["build_id"])
+    validate_documents(docs, g["build_id"], s["build_id"], g["document_count"])
     return {"gold_build_id": g["build_id"], "silver_build_id": s["build_id"],
             "source_version": version, "identity_version": dv, "documents": docs}
 
@@ -436,15 +438,15 @@ def run_notebook(spark, dbutils, workspace=None):
         return {"state": "index_pending"}
     scan_matches(workspace, cfg, snapshot["documents"])
     assert_unchanged(spark, cfg, snapshot)
-    print("Index content verified: seven document IDs, all synced metadata, text and hashes match current Gold.")
+    print("Index content verified: all " + str(len(snapshot["documents"])) + " document IDs, synced metadata, text and hashes match current Gold.")
     if mode != "test":
-        return {"state": "index_verified", "model": model, "documents": MAX_PROFILES}
+        return {"state": "index_verified", "model": model, "documents": len(snapshot["documents"])}
     table = sql_name(cfg["catalog"], cfg["gold"], "researcher_profile_publications")
     pubs = [r.asDict(recursive=True) for r in spark.sql(
         "SELECT researcher_id, publication_evidence_id, title, abstract_excerpt, publication_year, "
         "evidence_url, publication_type, is_preprint FROM " + table +
-        " WHERE build_id = '" + snapshot["gold_build_id"] + "'").limit(1001).collect()]
-    if len(pubs) > 1000 or not pubs:
+        " WHERE build_id = '" + snapshot["gold_build_id"] + "'").limit(5001).collect()]
+    if len(pubs) > 5000 or not pubs:
         raise ValueError("Publication evidence exceeds bounded pilot scope or is missing")
     result = test_searches(workspace, cfg, snapshot, pubs)
     assert_unchanged(spark, cfg, snapshot)

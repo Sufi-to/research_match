@@ -7,6 +7,8 @@ import json
 import math
 import re
 
+MAX_ROWS = 25001  # Largest EVIDENCE_LIMITS value + 1; the byte limit still applies.
+
 
 class WarehouseError(RuntimeError):
     pass
@@ -48,7 +50,7 @@ class Frame:
         self.warehouse, self.statement, self.bound = warehouse, statement, limit
 
     def limit(self, count):
-        if type(count) is not int or not 1 <= count <= 5001:
+        if type(count) is not int or not 1 <= count <= MAX_ROWS:
             raise WarehouseError("Invalid pilot row bound")
         return Frame(self.warehouse, self.statement, count)
 
@@ -85,7 +87,7 @@ class Warehouse:
         if table not in self.tables:
             raise WarehouseError("SQL is outside the read-only app contract")
         if select:
-            if limit is None or not 1 <= limit <= 5001:
+            if limit is None or not 1 <= limit <= MAX_ROWS:
                 raise WarehouseError("SELECT requires a bounded row count")
             return statement + f" LIMIT {limit}", limit
         if meta.group(1) == "HISTORY" and not meta.group(3):

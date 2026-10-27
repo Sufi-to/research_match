@@ -26,7 +26,7 @@ SYNC_COLUMNS = ["document_id", "researcher_id", "display_name", "profile_url", "
 RESULT_COLUMNS = ["document_id", "researcher_id", "display_name", "gold_build_id",
                   "silver_build_id", "search_text_sha256"]
 
-MAX_PROFILES = 7
+MAX_PROFILES = 50  # Upper bound, as in Gold; the actual count comes from the build.
 
 BASE = "/api/2.0/vector-search"
 
@@ -58,10 +58,12 @@ def api_call(w, method, path, body=None, query=None):
 def index_path(cfg, suffix=""):
     return BASE + "/indexes/" + quote(cfg["index"], safe="") + suffix
 
-def validate_documents(docs, gold_build, silver_build):
-    if len(docs) != MAX_PROFILES or len({d["document_id"] for d in docs}) != MAX_PROFILES:
-        raise ValueError("Expected exactly seven unique Gold search documents")
-    if len({d["researcher_id"] for d in docs}) != MAX_PROFILES:
+def validate_documents(docs, gold_build, silver_build, expected):
+    # expected = the published Gold build's document_count; MAX_PROFILES is the hard upper bound.
+    if (type(expected) is not int or not 1 <= expected <= MAX_PROFILES
+            or len(docs) != expected or len({d["document_id"] for d in docs}) != expected):
+        raise ValueError("Gold search documents do not match the published build's document count")
+    if len({d["researcher_id"] for d in docs}) != expected:
         raise ValueError("Gold researcher IDs must be unique")
     for d in docs:
         text = d["search_text"]
@@ -102,7 +104,7 @@ def source_snapshot(spark, cfg):
     docs = [r.asDict(recursive=True) for r in spark.sql(
         "SELECT " + ", ".join(SYNC_COLUMNS) + f" FROM {table} VERSION AS OF {version}"
     ).limit(MAX_PROFILES + 1).collect()]
-    validate_documents(docs, g["build_id"], s["build_id"])
+    validate_documents(docs, g["build_id"], s["build_id"], g["document_count"])
     return {"gold_build_id": g["build_id"], "silver_build_id": s["build_id"],
             "source_version": version, "identity_version": dv, "documents": docs}
 
@@ -224,8 +226,8 @@ EVIDENCE_COLUMNS = {
     "researcher_profile_topics": "researcher_id topic_id topic_name supporting_contribution_count",
     "researcher_topic_evidence": "researcher_id topic_id contribution_id publication_evidence_id representative_work_id",
 }
-EVIDENCE_LIMITS = {"researcher_profile_publications": 1000, "researcher_profile_topics": 1500,
-                   "researcher_topic_evidence": 5000}
+EVIDENCE_LIMITS = {"researcher_profile_publications": 5000, "researcher_profile_topics": 7500,
+                   "researcher_topic_evidence": 25000}
 STOP = set("a an and are as at be by can could do does find for from give has have how i in interested is it me my of on or our please researcher researchers research seeking some someone suitable team teams that the their them these they this to topic up us use using want we what which who will with work working would you your looking collaborator collaborators collaborate study studies based need help about into investigating researching focus focused".split())
 GENERIC = set("application applications approach approaches analysis data framework frameworks model models method methods practice practices process processes science scientific system systems technique techniques technology technologies tool tools new improve improving investigate".split())
 BROAD = set("artificial_intelligence machine_learning higher_education learning education digital information security network detection prediction development performance management planning medical image teaching".split())

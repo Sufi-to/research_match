@@ -182,7 +182,8 @@ class StrictPolicyTests(unittest.TestCase):
         new = ast.parse((ROOT / "notebooks/14_match_researchers_strict.py").read_text())
         funcs = lambda tree: {n.name: n for n in tree.body if isinstance(n, ast.FunctionDef)}
         a, b = funcs(old), funcs(new)
-        changed = {"prepare_evidence", "screen_query", "contribution_match", "match_candidates", "run_notebook"}
+        changed = {"prepare_evidence", "screen_query", "contribution_match", "match_candidates", "run_notebook",
+                   "validate_documents", "source_snapshot"}  # 14 takes the profile count from Gold
         for name in a.keys() & b.keys() - changed:
             self.assertEqual(ast.dump(a[name]), ast.dump(b[name]), name)
         self.assertNotIn("write", {n.attr for n in ast.walk(new) if isinstance(n, ast.Attribute)})

@@ -198,7 +198,8 @@ class MatchingPolicyTests(unittest.TestCase):
         target = ast.parse((ROOT / "notebooks/13_match_researchers.py").read_text())
         old = {n.name: n for n in source.body if isinstance(n, ast.FunctionDef)}
         new = {n.name: n for n in target.body if isinstance(n, ast.FunctionDef)}
-        for name in old.keys() & new.keys() - {"run_notebook"}:
+        # Notebook 13 stays frozen at the seven-profile pilot; 12 now takes the count from Gold.
+        for name in old.keys() & new.keys() - {"run_notebook", "validate_documents", "source_snapshot"}:
             self.assertEqual(ast.dump(old[name]), ast.dump(new[name]), name)
         self.assertNotIn("write", {n.attr for n in ast.walk(target) if isinstance(n, ast.Attribute)})
 
@@ -219,7 +220,7 @@ class MatchingIntegrationTests(unittest.TestCase):
             result = matching.run_match(Mock(), self.cfg, self.snap, self.ev, "Blockchain security")
         self.assertEqual(result["status"], "candidates_for_review")
         body = call.call_args.kwargs["body"]
-        self.assertEqual(body["num_results"], 7)
+        self.assertEqual(body["num_results"], matching.MAX_PROFILES)
         self.assertEqual(json.loads(body["filters_json"]), {"gold_build_id": "gold", "is_searchable": True})
 
     def test_negative_and_refinement_skip_inference(self):

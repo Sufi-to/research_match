@@ -68,7 +68,9 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
   - notebook 14 ↔ `app/researchmatch/matching_policy.py` (`tests/test_app.py`)
 
   If you change a mirrored function, change every copy, or the parity tests fail.
-- **Do not modify notebook 13.** It is preserved unchanged for comparison with 14.
+- **Do not modify notebook 13.** It is preserved unchanged for comparison with 14,
+  and only works against a seven-profile Gold build. Notebooks 12/14 and the app take
+  the profile count from Gold's `document_count` (upper bound `MAX_PROFILES = 50`).
   Matching notebooks and the app must not write to Delta (tests assert this).
 - **Do not recreate Databricks resources.** Reuse the existing SQL warehouse,
   STANDARD endpoint `vs_endpoint_1`, and index

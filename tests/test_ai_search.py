@@ -72,18 +72,23 @@ class SearchPureTests(unittest.TestCase):
             search.choose_model("databricks-gte-large-en", set(search.MODELS), idx)
 
     def test_full_document_contract(self):
-        search.validate_documents(documents(), "gold", "silver")
+        search.validate_documents(documents(), "gold", "silver", 7)
         for field, wrong in (("gold_build_id", "old"), ("is_searchable", False), ("funding_status", "zero"),
                              ("search_text_sha256", "bad"), ("document_id", "another"), ("search_text", "x" * 6001)):
             rows = documents()
             rows[0][field] = wrong
             with self.assertRaises(ValueError):
-                search.validate_documents(rows, "gold", "silver")
+                search.validate_documents(rows, "gold", "silver", 7)
 
     def test_extra_missing_duplicate_profiles_fail(self):
         for rows in (documents()[:-1], documents() + [documents()[0]], [documents()[0]] * 7):
             with self.assertRaises(ValueError):
-                search.validate_documents(rows, "gold", "silver")
+                search.validate_documents(rows, "gold", "silver", 7)
+
+    def test_document_count_must_match_build_and_bound(self):
+        for expected in (6, 8, 0, search.MAX_PROFILES + 1, "7", None):
+            with self.assertRaises(ValueError):
+                search.validate_documents(documents(), "gold", "silver", expected)
 
     def test_index_contract_no_direct_continuous_or_other_source(self):
         cfg = search.config()
