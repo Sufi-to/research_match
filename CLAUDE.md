@@ -96,8 +96,8 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
 
 ## Current state (as of 2026-10-27)
 
-Pilot of 7 verified researcher identities (target: ~50 across Business and
-Technological Innovation). Bronze, Silver v2, Gold, AI Search index, notebooks
+Pilot of 13 verified researcher identities after batch 03 (target: ~50 across
+Business and Technological Innovation). Bronze, Silver v2, Gold, AI Search index, notebooks
 13/14 and the deployed app `researchmatch-pilot` are user-confirmed in Databricks.
 **Next milestone: independent relevance review** (`docs/matching_evaluation_review.md`),
 then broader profile coverage.

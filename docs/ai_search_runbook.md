@@ -210,6 +210,17 @@ this small redundant check is deliberate, and still consumes inference allowance
   pipeline/status message. Retain existing resources; do not repeatedly create.
 - **Stale content:** if initialization is complete, check source freshness, trigger
   one sync and recheck. Never suppress the hash/build checks.
+- **`VECTOR_SEARCH_SOURCE_HISTORY_OUT_OF_RETENTION`** (sync fails and Databricks
+  retries it repeatedly): the source table's history for the index's last processed
+  version is gone. This happened on 2026-10-27, when the index tried to sync a new
+  Gold build against a September version under the 7-day default retention. The
+  only fix is to delete and recreate the index (`create`), then re-grant the app's
+  `SELECT` on the index. SQL 09 now keeps 365 days of history on
+  `researcher_search_documents` to prevent a repeat. Check with
+  `SHOW TBLPROPERTIES` if the table was ever recreated.
+- **Endpoint missing:** Free Edition can remove an idle endpoint. Recreate it with
+  `create` (same name `vs_endpoint_1`), then grant the app CAN_USE on it again (see
+  the app runbook).
 - **Different existing index model/source:** the notebook stops. Replacement needs
   a separate reviewed decision; no destructive recreation is included.
 

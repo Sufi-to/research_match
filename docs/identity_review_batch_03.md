@@ -1,7 +1,9 @@
 # Identity review batch 03 — 2026-10-27
 
-Status: **prepared, awaiting the user's review and approval in Databricks.** No
-decisions have been recorded. This reviews the September 5 collection as loaded in
+Status: **approved by the user on 2026-10-27** (six accepts recorded under their
+identity via SQL 15's guarded INSERT). Silver `b239f898…`: 13 verified, 110 pending;
+SQL 08 checks zero. Gold `6fcc7472…`: 13 profiles, 1,024 publications; SQL 11 checks
+zero. Index recreated (see the AI Search runbook) and all 16 searches passed. This reviews the September 5 collection as loaded in
 the current Silver build, not a fresh check of live websites.
 
 ## How these six were selected

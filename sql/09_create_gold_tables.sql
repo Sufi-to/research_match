@@ -159,6 +159,13 @@ CREATE TABLE IF NOT EXISTS researcher_search_documents (
 -- COMMAND ----------
 ALTER TABLE researcher_search_documents SET TBLPROPERTIES ('delta.enableChangeDataFeed' = 'true');
 -- COMMAND ----------
+-- The AI Search index syncs from this table's change history. With the 7-day
+-- default, a Gold rebuild more than a week after the last one fails with
+-- VECTOR_SEARCH_SOURCE_HISTORY_OUT_OF_RETENTION. The table is tiny; keep a year.
+ALTER TABLE researcher_search_documents SET TBLPROPERTIES (
+  'delta.deletedFileRetentionDuration' = 'interval 365 days',
+  'delta.logRetentionDuration' = 'interval 365 days');
+-- COMMAND ----------
 -- Publication pointer: one atomic serving-table MERGE switches all current views.
 -- A validated snapshot in build_runs alone is NOT a published build.
 CREATE VIEW IF NOT EXISTS current_build AS
