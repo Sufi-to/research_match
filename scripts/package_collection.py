@@ -43,7 +43,13 @@ def inventory(paths):
                 raise CollectionError("Derived files must not be symlinks")
             json.loads(source.read_text())
             files.append((source, path.name + "/derived/" + source.name))
-    result["ready_for_bronze_loader"] = all(result["required_sources"].get(s) == "complete" for s in ("faculty", "oai", "openalex"))
+    # A targeted supplementary batch is loaded alongside the original batches, so it only
+    # needs its own OpenAlex source; faculty and OAI come from the earlier batch.
+    supplementary = bool(result["batches"]) and all(
+        b["sources"].get("openalex", {}).get("targeted") for b in result["batches"])
+    required = ("openalex",) if supplementary else ("faculty", "oai", "openalex")
+    result["supplementary"] = supplementary
+    result["ready_for_bronze_loader"] = all(result["required_sources"].get(s) == "complete" for s in required)
     result["raw_bytes"] = sum(d["bytes"] for d in result["datasets"].values())
     result["raw_files"] = sum(d["files"] for d in result["datasets"].values())
     return result, files

@@ -161,6 +161,50 @@ user under `/Volumes/workspace/researchmatch_bronze/landing/`; a live Delta load
 still to be verified. The direct OAI notebook remains an alternative and does not
 read these landed files. The local collector itself never writes Databricks tables.
 
+## 4a. Targeted supplementary batch (fill identity gaps without invalidating approvals)
+
+Use this to collect evidence for specific unverified candidates, not to refresh
+everything. Bronze record keys are content hashes and Silver keeps the latest version
+of each entity, so **re-fetching a verified person's author record or faculty page
+would change their identity evidence hash and make the approved decision stale.** The
+targeted mode never fetches faculty pages, OAI records, or any protected author.
+
+1. Export the protected list (verified authors and their ORCIDs) read-only from Silver
+   into `config/verified_author_ids.json`.
+2. List the targets in `config/targeted_collection.json`: name, tier, OpenAlex author
+   IDs and/or ORCIDs, optional `registry_query`, and the reason.
+3. Collect into a **new** batch:
+
+   ```sh
+   .venv/bin/python scripts/collect_sources.py --source targeted \
+     --batch data/landing/targeted-YYYYMMDD \
+     --targets config/targeted_collection.json --protected config/verified_author_ids.json
+   ```
+
+   It fetches the target authors (by ID and by ORCID), their career works, the awards
+   and funders those works link to, and raw ORCID registry responses
+   (`orcid_registry_raw`, kept for audit; the Bronze loader ignores that dataset).
+   It refuses protected IDs/ORCIDs, and fails the batch if an ORCID resolves to a
+   protected author.
+4. **Prove it locally before uploading:** replay Silver over the existing batches plus
+   the new one with all live accept decisions. Expect **0 stale decisions** and an
+   unchanged verified count, then build Gold with the same profile count.
+5. Package only the new batch (a targeted batch needs only its OpenAlex source):
+
+   ```sh
+   python3 scripts/package_collection.py --batch data/landing/targeted-YYYYMMDD \
+     --output data/exports/researchmatch-targeted-YYYYMMDD.tar.gz
+   ```
+
+6. Upload the extracted folder to `/Volumes/workspace/researchmatch_bronze/landing/`.
+   Run notebook 03 with `batch_folders=targeted-YYYYMMDD`, `datasets=openalex_authors_raw,
+   openalex_works_raw,openalex_awards_raw,openalex_funders_raw`, `max_files_per_dataset=0`:
+   `validate`, then `load`. Then notebook 05 `validate`: **stop if any decision is stale**;
+   otherwise `build`. New candidates stay pending until a reviewed identity batch.
+
+The first targeted batch is described in
+[collection_report_2026-10-29.md](collection_report_2026-10-29.md).
+
 ## 5. Institutional data, when available
 
 An official roster can supply institutional researcher IDs, names, college,

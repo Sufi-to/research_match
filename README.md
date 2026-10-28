@@ -33,6 +33,7 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Product plan](docs/product_plan.md): scope, architecture, and delivery milestones.
 - [Collection runbook](docs/data_collection_runbook.md): download, resume, verify, and package data.
 - [First collection report](docs/collection_report_2026-09-05.md): actual counts, coverage gaps, and local artifact locations.
+- [Targeted collection report](docs/collection_report_2026-10-29.md): supplementary batch for ten unverified candidates; proven locally to leave all 34 approvals valid.
 - [Institutional data contract](docs/institutional_data_contract.md): optional roster/award exports.
 - [Bronze DDL](sql/01_create_bronze_tables.sql): creates the 11 planned Bronze tables.
 - [Volume-to-Bronze notebook](notebooks/03_load_volume_to_bronze.py): validates manifested files and merges raw versions into Delta.

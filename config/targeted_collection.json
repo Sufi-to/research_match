@@ -1,0 +1,30 @@
+{
+  "purpose": "Supplementary collection for unverified ZU profiles (plan 2026-10-29). Collects only these candidate authors, their career works and linked awards, plus raw ORCID registry evidence. Collection does not approve anyone; identities still go through a reviewed batch.",
+  "people": [
+    {"name": "Mahmoud Agha", "tier": "1_registry", "author_ids": ["A5074445320"], "orcids": ["0000-0002-4237-0056"],
+     "registry_query": "given-and-family-names:\"Mahmoud Agha\" AND affiliation-org-name:\"Zayed University\"",
+     "reason": "Registry ORCID with current ZU employment matches this author; no works collected yet"},
+    {"name": "Moo Sung Kim", "tier": "1_registry", "author_ids": ["A5063716848"], "orcids": ["0000-0002-5073-9984"],
+     "registry_query": "given-and-family-names:\"Moo Sung Kim\" AND affiliation-org-name:\"Zayed University\"",
+     "reason": "Registry ORCID is on this author; career works incomplete"},
+    {"name": "Feras Al Obeidat", "tier": "1_registry", "author_ids": ["A5037131693"], "orcids": ["0000-0001-6941-6555", "0009-0006-1706-0992"],
+     "registry_query": "given-and-family-names:\"Feras Al Obeidat\" AND affiliation-org-name:\"Zayed University\"",
+     "reason": "ORCID record lists ZU employment since 2015; a second, empty ORCID record exists"},
+    {"name": "Butros Dahu", "tier": "1_registry", "author_ids": ["A5027453912"], "orcids": ["0000-0001-5880-2450"],
+     "registry_query": "family-name:\"Dahu\" AND affiliation-org-name:\"Zayed University\"",
+     "reason": "Registry ORCID (family-name search) with ZU employment matches this author; no works collected yet"},
+    {"name": "Ian Michael", "tier": "1_registry", "orcids": ["0000-0002-0559-2303"],
+     "registry_query": "given-and-family-names:\"Ian Michael\" AND affiliation-org-name:\"Zayed University\"",
+     "reason": "Registry ORCID is on an author record not yet collected"},
+    {"name": "Abiot Tessema", "tier": "2_affiliation", "author_ids": ["A5005423855"], "orcids": ["0000-0001-8423-8232"],
+     "reason": "Name-matched author carries an ORCID and ZU affiliations; ORCID lists no employment"},
+    {"name": "Anwer Al-Dulaimi", "tier": "2_affiliation", "author_ids": ["A5020575793"], "orcids": ["0000-0001-9936-0038"],
+     "reason": "Name-matched author carries an ORCID and ZU affiliations; ORCID lists no employment"},
+    {"name": "Catherine Nickerson", "tier": "2_affiliation", "author_ids": ["A5040939492"], "orcids": ["0000-0002-3379-1465"],
+     "reason": "Name-matched author carries an ORCID and ZU affiliations; ORCID lists no employment"},
+    {"name": "Maytha Al Ali", "tier": "2_affiliation", "author_ids": ["A5089919765"], "orcids": ["0000-0001-5606-1695"],
+     "reason": "Name-matched author carries an ORCID and ZU affiliations; ORCID lists no employment"},
+    {"name": "Mohammed Sualihu", "tier": "2_affiliation", "author_ids": ["A5007637668"], "orcids": ["0000-0002-0766-4569"],
+     "reason": "Name-matched author carries an ORCID and ZU affiliations; ORCID lists no employment"}
+  ]
+}

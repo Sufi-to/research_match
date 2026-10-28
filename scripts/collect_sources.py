@@ -89,7 +89,7 @@ class Batch:
             raise CollectionError("Use separate sanitized parameters; never put credentials in URLs.")
         parsed = urlsplit(url)
         if parsed.scheme != "https" or parsed.hostname not in {
-                "www.zu.ac.ae", "zuscholars.zu.ac.ae", "api.openalex.org"}:
+                "www.zu.ac.ae", "zuscholars.zu.ac.ae", "api.openalex.org", "pub.orcid.org"}:
             raise CollectionError("Source URL is outside the configured public sources.")
         identity = json.dumps([dataset, url, params], sort_keys=True).encode()
         request_id = sha(identity)
@@ -102,6 +102,8 @@ class Batch:
         headers = {}
         if parsed.hostname == "api.openalex.org" and self.key:
             headers["Authorization"] = "Bearer " + self.key
+        if parsed.hostname == "pub.orcid.org":
+            headers["Accept"] = "application/json"  # The public ORCID API defaults to XML.
         for attempt in range(4):
             if self.requests >= self.max_requests:
                 raise CollectionError("Request budget reached; rerun this batch to resume.")
@@ -457,6 +459,25 @@ def collect_openalex(batch, config):
     batch.derived("openalex_work_ids.json", sorted(works))
     # Obtain historical awards as source assertions, without claiming PI attribution.
     awards = {a["id"]: a for a in oa_list(batch, "awards", "institution_awarded.id:" + config["institution_id"], "zu_institution")}
+    award_ids, funder_ids, retrieved_funders = collect_linked_awards(batch, works, awards)
+    resolved_dois = {re.sub(r"^https?://(?:dx\.)?doi.org/", "", w.get("doi") or "").lower() for w in works.values()}
+    batch.derived("unresolved_dois.json", sorted(source_dois - resolved_dois))
+    return {"unique_works": len(works), "pilot_author_candidates": len(author_ids),
+            "institution_query_works": institution_query_works,
+            "institution_reported_works_count": institution.get("works_count"),
+            "expansion_works": sum(bool(w.get("is_xpac")) for w in works.values()),
+            "profile_orcid_authors_with_career_collection": len(orcid_author_ids),
+            "pilot_profiles_with_candidates": sum(bool(p["candidates"]) for p in candidates),
+            "unique_awards": len(awards), "funder_ids_requested": len(funder_ids),
+            "unique_funders": len(retrieved_funders),
+            "unresolved_award_ids": len(award_ids - set(awards)),
+            "unresolved_funder_ids": len(funder_ids - retrieved_funders),
+            "unresolved_dois": len(source_dois - resolved_dois),
+            "scope": "ZU-affiliated works plus repository DOIs; pilot author candidates; linked award evidence"}
+
+
+def collect_linked_awards(batch, works, awards):
+    """Fetch awards and funders linked from works into awards; return requested/retrieved IDs."""
     award_ids, funder_ids = set(), set()
     for work in works.values():
         for award in work.get("awards") or []:
@@ -480,20 +501,69 @@ def collect_openalex(batch, config):
         retrieved_funders.update(f["id"] for f in oa_list(batch, "funders", "openalex:" + "|".join(short_id(i) for i in group), "linked_award_or_work"))
     batch.derived("unresolved_award_ids.json", sorted(award_ids - set(awards)))
     batch.derived("unresolved_funder_ids.json", sorted(funder_ids - retrieved_funders))
-    resolved_dois = {re.sub(r"^https?://(?:dx\.)?doi.org/", "", w.get("doi") or "").lower() for w in works.values()}
-    batch.derived("unresolved_dois.json", sorted(source_dois - resolved_dois))
-    return {"unique_works": len(works), "pilot_author_candidates": len(author_ids),
-            "institution_query_works": institution_query_works,
-            "institution_reported_works_count": institution.get("works_count"),
-            "expansion_works": sum(bool(w.get("is_xpac")) for w in works.values()),
-            "profile_orcid_authors_with_career_collection": len(orcid_author_ids),
-            "pilot_profiles_with_candidates": sum(bool(p["candidates"]) for p in candidates),
-            "unique_awards": len(awards), "funder_ids_requested": len(funder_ids),
-            "unique_funders": len(retrieved_funders),
+    return award_ids, funder_ids, retrieved_funders
+
+
+ORCID_ID = r"\d{4}-\d{4}-\d{4}-\d{3}[\dX]"
+
+
+def collect_targeted(batch, targets, protected):
+    """Supplementary batch: only the named candidate authors, their career works and linked awards.
+
+    Never fetches faculty pages, OAI records or any protected (already verified) author:
+    re-fetching those would change their Bronze records and make approved decisions stale.
+    """
+    protected_ids = {short_id(a) for a in protected["author_ids"]}
+    protected_orcids = {short_id(o) for o in protected["orcids"]}
+    author_ids, orcids = set(), set()
+    for person in targets["people"]:
+        for aid in person.get("author_ids", []):
+            if not re.fullmatch(r"A\d+", aid):
+                raise CollectionError("Invalid OpenAlex author ID for " + person["name"])
+            author_ids.add(aid)
+        for orcid in person.get("orcids", []):
+            if not re.fullmatch(ORCID_ID, orcid):
+                raise CollectionError("Invalid ORCID for " + person["name"])
+            orcids.add(orcid)
+    if author_ids & protected_ids or orcids & protected_orcids:
+        raise CollectionError("Targets include an already verified author; refusing to change its records")
+    # ORCID registry evidence is kept raw for audit; the Bronze loader does not read this dataset.
+    for person in targets["people"]:
+        if person.get("registry_query"):
+            batch.fetch("orcid_registry_raw", "https://pub.orcid.org/v3.0/expanded-search/",
+                        {"q": person["registry_query"], "rows": 5}, reason="registry_search")
+        for orcid in person.get("orcids", []):
+            batch.fetch("orcid_registry_raw", f"https://pub.orcid.org/v3.0/{orcid}/employments",
+                        reason="registry_employment")
+    by_orcid = {}
+    for group in chunks(orcids):
+        for author in oa_list(batch, "authors", "orcid:" + "|".join(group), "targeted_orcid"):
+            author_ids.add(short_id(author["id"]))
+            by_orcid.setdefault(short_id(author.get("orcid")), set()).add(short_id(author["id"]))
+    if author_ids & protected_ids:
+        raise CollectionError("An ORCID resolved to an already verified author; do not load this batch")
+    authors = {}
+    for group in chunks(author_ids):
+        for author in oa_list(batch, "authors", "openalex:" + "|".join(group), "targeted_author"):
+            authors[short_id(author["id"])] = author
+    works = {}
+    for group in chunks(authors):
+        for work in oa_list(batch, "works", "authorships.author.id:" + "|".join(group), "targeted_career", corpus="all"):
+            works[work["id"]] = work
+    awards = {}
+    award_ids, funder_ids, retrieved_funders = collect_linked_awards(batch, works, awards)
+    batch.derived("targeted_people.json", [
+        {"name": p["name"], "tier": p.get("tier"), "reason": p.get("reason"),
+         "authors": sorted(a for a in authors if a in set(p.get("author_ids", []))
+                           or any(a in by_orcid.get(o, ()) for o in p.get("orcids", [])))}
+        for p in targets["people"]])
+    batch.derived("openalex_work_ids.json", sorted(works))
+    return {"targeted": True, "people": len(targets["people"]), "authors": len(authors),
+            "unique_works": len(works), "unique_awards": len(awards),
+            "funder_ids_requested": len(funder_ids), "unique_funders": len(retrieved_funders),
             "unresolved_award_ids": len(award_ids - set(awards)),
-            "unresolved_funder_ids": len(funder_ids - retrieved_funders),
-            "unresolved_dois": len(source_dois - resolved_dois),
-            "scope": "ZU-affiliated works plus repository DOIs; pilot author candidates; linked award evidence"}
+            "protected_authors_excluded": len(protected_ids),
+            "scope": "supplementary: named candidate authors' career works and linked awards only"}
 
 
 def verify(batch):
@@ -508,7 +578,9 @@ def verify(batch):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--source", choices=["all", "faculty", "oai", "openalex", "verify"], default="all")
+    parser.add_argument("--source", choices=["all", "faculty", "oai", "openalex", "targeted", "verify"], default="all")
+    parser.add_argument("--targets", help="targeted: JSON list of candidate authors/ORCIDs to collect")
+    parser.add_argument("--protected", help="targeted: JSON of verified author IDs/ORCIDs that must not be re-fetched")
     parser.add_argument("--batch", required=True, help="Local batch directory; reuse to resume, new directory to refresh")
     parser.add_argument("--config", default=str(ROOT / "config/collection.json"))
     parser.add_argument("--inputs-batch", help="Optional separate completed faculty/OAI batch used by OpenAlex")
@@ -523,6 +595,14 @@ def main():
     if args.source == "verify":
         verify(batch)
         return 0
+    if args.source == "targeted":
+        if not (args.targets and args.protected):
+            parser.error("targeted needs --targets and --protected")
+        targets = json.loads(Path(args.targets).read_text())
+        protected = json.loads(Path(args.protected).read_text())
+        # Recorded as the openalex source so the Bronze loader accepts its OpenAlex files.
+        batch.run("openalex", lambda: collect_targeted(batch, targets, protected))
+        return 0 if batch.manifest["sources"]["openalex"]["status"] == "complete" else 2
     for name, collector in [("faculty", collect_faculty), ("oai", collect_oai), ("openalex", collect_openalex)]:
         if args.source in ("all", name):
             batch.run(name, lambda collector=collector: collector(batch, config))
