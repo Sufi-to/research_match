@@ -5,6 +5,7 @@ import json
 import re
 from pathlib import Path
 import sys
+import threading
 import unittest
 from unittest.mock import Mock, patch
 
@@ -168,6 +169,10 @@ def fake_workspace(fail=None):
 
 
 class AppContractTests(unittest.TestCase):
+    def setUp(self):
+        service.clear_cache()  # The validated-state cache is process-wide.
+        self.addCleanup(service.clear_cache)
+
     def test_policy_matches_notebook_14(self):
         original = ast.parse((ROOT / "notebooks/14_match_researchers_strict.py").read_text())
         mirrored = ast.parse((ROOT / "app/researchmatch/matching_policy.py").read_text())
@@ -199,6 +204,7 @@ class AppContractTests(unittest.TestCase):
         w.api_client.do.assert_not_called()
 
     def run_service(self, query=None, changed=False):
+        service.clear_cache()  # Each call builds its own fixture; never reuse another call's state.
         docs, data, snap = fixture()
         ev = policy.prepare_evidence(docs, data, "gold", "silver")
         cfg = policy.config(endpoint="vs_endpoint_1", model="databricks-gte-large-en")
@@ -317,6 +323,10 @@ class TeamTests(unittest.TestCase):
 
 
 class ErrorGuidanceTests(unittest.TestCase):
+    def setUp(self):
+        service.clear_cache()  # The validated-state cache is process-wide.
+        self.addCleanup(service.clear_cache)
+
     ENV = {"DATABRICKS_WAREHOUSE_ID": "test"}
 
     def failed(self, fail, query="Blockchain security"):
@@ -372,12 +382,92 @@ class ErrorGuidanceTests(unittest.TestCase):
         self.assertNotIn("SECRET", str(ctx.exception))
 
 
+class CacheTests(unittest.TestCase):
+    ENV = {"DATABRICKS_WAREHOUSE_ID": "test"}
+
+    def setUp(self):
+        service.clear_cache()
+        self.addCleanup(service.clear_cache)
+        self.workspace, self.queries = fake_workspace()
+
+    def search(self, query="Blockchain security"):
+        self.queries.clear()
+        self.workspace.api_client.do.reset_mock()
+        return service.execute(query, workspace=self.workspace, environ=self.ENV)
+
+    def paths(self):
+        return [c.kwargs["path"] for c in self.workspace.api_client.do.call_args_list]
+
+    def test_second_search_runs_one_statement_and_one_query(self):
+        first = self.search()
+        self.assertGreater(len(self.queries), 20)
+        second = self.search("Blockchain information security")
+        self.assertEqual(len(self.queries), 1)
+        self.assertTrue(self.queries[0].startswith("SELECT build_id, silver_build_id, document_count FROM"))
+        self.assertEqual(sum(p.endswith("/query") for p in self.paths()), 1)
+        self.assertFalse(any(p.endswith("/scan") or "/endpoints/" in p for p in self.paths()))
+        self.assertEqual(second["validated_at"], first["validated_at"])
+        self.assertEqual(second["status"], "partial_evidence_only")
+
+    def test_build_change_or_expiry_revalidates(self):
+        self.search()
+        with patch.object(service, "build_probe", return_value=("other-build", "s", 7)):
+            self.search()
+        self.assertGreater(len(self.queries), 20)
+        real = service.time.monotonic
+        with patch.object(service.time, "monotonic", return_value=real() + service.CACHE_TTL_SECONDS + 1):
+            self.search()
+        self.assertGreater(len(self.queries), 20)
+
+    def test_check_button_always_revalidates(self):
+        self.search()
+        result = self.search(None)
+        self.assertEqual(result["status"], "validation_passed")
+        self.assertGreater(len(self.queries), 20)
+
+    def test_failed_search_clears_cache(self):
+        self.search()
+        self.workspace.api_client.do.side_effect = RuntimeError("quota")
+        with self.assertRaises(RuntimeError):
+            self.search()
+        self.assertIsNone(service._cache["state"])
+
+    def test_concurrent_requests_validate_once(self):
+        calls = []
+        real = service.validate_state
+        def counted(*args):
+            calls.append(1)
+            return real(*args)
+        with patch.object(service, "validate_state", side_effect=counted):
+            threads = [threading.Thread(target=self.search) for _ in range(3)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+        self.assertEqual(len(calls), 1)
+
+    def test_profiles_after_search_reuse_state(self):
+        self.search()
+        self.queries.clear()
+        result = service.profiles(workspace=self.workspace, environ=self.ENV)
+        self.assertEqual(len(self.queries), 1)
+        self.assertEqual(result["status"], "profiles")
+
+
 class ProfileTests(unittest.TestCase):
+    def setUp(self):
+        service.clear_cache()  # The validated-state cache is process-wide.
+        self.addCleanup(service.clear_cache)
+
     def test_profiles_use_validated_evidence_without_search(self):
-        workspace, _ = fake_workspace()
-        result = service.profiles(workspace=workspace, environ={"DATABRICKS_WAREHOUSE_ID": "test"})
+        workspace, queries = fake_workspace()
+        env = {"DATABRICKS_WAREHOUSE_ID": "test"}
+        service.profiles(workspace=workspace, environ=env)
         paths = [c.kwargs["path"] for c in workspace.api_client.do.call_args_list]
-        self.assertTrue(all(p.startswith("/api/2.0/sql/statements") for p in paths))  # No endpoint/index/inference.
+        self.assertFalse(any(p.endswith("/query") for p in paths))  # Validation only; never a search.
+        queries.clear()
+        result = service.profiles(workspace=workspace, environ=env)
+        self.assertEqual(len(queries), 1)  # Cached: only the build probe runs.
         self.assertEqual(result["status"], "profiles")
         docs, _, _ = fixture()
         self.assertEqual(len(result["profiles"]), len(docs))
@@ -418,7 +508,7 @@ class UITests(unittest.TestCase):
     def test_submit_validation_and_no_stale_success_after_error(self):
         result = {"status": "validation_passed", "researchers": 7, "eligible_publications": 437,
                   "possible_version_group_count": 19, "policy_version": policy.MATCH_POLICY,
-                  "gold_build_id": "gold", "silver_build_id": "silver", "checked_at": "now"}
+                  "gold_build_id": "gold", "silver_build_id": "silver", "checked_at": "now", "validated_at": "earlier", "cache_ttl_minutes": 15}
         with patch.object(service, "execute", return_value=result) as call:
             at = self.app().run()
             at.sidebar.button[0].click().run()
@@ -436,7 +526,7 @@ class UITests(unittest.TestCase):
         ev = policy.prepare_evidence(docs, data, "gold", "silver")
         rows = [{k: d[k] for k in policy.RESULT_COLUMNS} for d in docs]
         result = policy.match_candidates(policy.query_plan("Blockchain information security"), rows, ev, snap)
-        result["checked_at"] = "now"
+        result.update(checked_at="now", validated_at="earlier", cache_ttl_minutes=15)
         with patch.object(service, "execute", return_value=result):
             at = self.app().run()
             at.text_area[0].set_value("Blockchain information security")
@@ -450,7 +540,7 @@ class UITests(unittest.TestCase):
         ev = policy.prepare_evidence(docs, data, "gold", "silver")
         rows = [{k: d[k] for k in policy.RESULT_COLUMNS} for d in docs]
         result = policy.match_candidates(policy.query_plan("Blockchain information security"), rows, ev, snap)
-        result["checked_at"] = "now"
+        result.update(checked_at="now", validated_at="earlier", cache_ttl_minutes=15)
         with patch.object(service, "execute", return_value=result) as call:
             at = self.app().run()
             at.text_area[0].set_value("Blockchain information security")
@@ -466,7 +556,7 @@ class UITests(unittest.TestCase):
     def test_profiles_view_loads_only_on_click(self):
         docs, data, _ = fixture()
         loaded = {"status": "profiles", "profiles": profile_view.build(policy.prepare_evidence(docs, data, "gold", "silver")),
-                  "gold_build_id": "gold", "checked_at": "now"}
+                  "gold_build_id": "gold", "checked_at": "now", "validated_at": "earlier", "cache_ttl_minutes": 15}
         with patch.object(service, "profiles", return_value=loaded) as call, patch.object(service, "execute") as run:
             at = self.app().run()
             next(r for r in at.sidebar.radio if r.label == "View").set_value("Researcher profiles").run()

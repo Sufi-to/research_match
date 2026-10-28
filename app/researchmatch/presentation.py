@@ -136,7 +136,10 @@ def show_result(st, result, team=None):
         st.text("Policy: " + result["policy_version"])
         st.text("Gold build: " + result["gold_build_id"])
         st.text("Silver build: " + result["silver_build_id"])
-        st.text("Checked at: " + result["checked_at"])
+        st.text("Data fully validated at: " + result["validated_at"])
+        st.text("Build checked at: " + result["checked_at"])
+        st.caption(f"Full validation reruns every {result['cache_ttl_minutes']} minutes, when the Gold "
+                   "build changes, or when you click Check connection and data.")
         st.caption("Results are a point-in-time snapshot. Re-submit to check current data. "
                    "Term matching can miss synonyms and admit irrelevant context. "
                    "No accuracy claim or grant-recipient inference is made. Team suggestions "

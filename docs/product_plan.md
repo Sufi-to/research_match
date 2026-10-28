@@ -496,8 +496,9 @@ uses Databricks-managed app authorization and a bounded SQL Statement API adapte
 not Spark inside the app. Page load does not query data; explicit submissions
 recheck current snapshots. A "Suggested team" option combines displayed evidence
 coverage (§9.3), a read-only *Researcher profiles* view shows each verified profile's
-topics and publications, and failures give step-specific guidance. No LLM or
-persistence is introduced.
+topics and publications, and failures give step-specific guidance. Validated state is cached in memory for 15
+minutes behind a one-statement build check (searches ~30 s → a few seconds). No LLM
+or persistence is introduced.
 See [`app_runbook.md`](app_runbook.md). The features below remain the broader target.
 
 The MVP can be one Databricks App with:

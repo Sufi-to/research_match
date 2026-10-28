@@ -27,6 +27,8 @@ with st.sidebar:
     clear = st.button("Clear displayed results")
     st.caption("Uses the existing SQL warehouse and AI Search index. "
                "Each submitted request uses compute; typing does not run a search.")
+    st.caption("The first request after a quiet period or a data change takes about 30 seconds "
+               "while everything is revalidated; later ones take a few seconds.")
     st.caption("No saved searches or feedback database. Avoid confidential proposal details. "
                "The platform may retain operational logs.")
 
@@ -52,7 +54,8 @@ if view == "Researcher profiles":
         names = [p["display_name"] for p in people]
         chosen = st.selectbox(f"Researcher ({len(people)} verified)", range(len(people)), format_func=names.__getitem__)
         show_profile(st, people[chosen])
-        st.caption(f"Gold build {loaded['gold_build_id']} · checked at {loaded['checked_at']}")
+        st.caption(f"Gold build {loaded['gold_build_id']} · validated at {loaded['validated_at']} "
+                   f"· build checked at {loaded['checked_at']}")
     st.stop()
 
 st.write("Explore potential collaborators through their collected publications.")

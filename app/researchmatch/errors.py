@@ -47,7 +47,7 @@ def describe(error):
         if text:
             return ("The AI Search index does not match the current Gold build. Run notebook 12 in sync, then "
                     "status mode (AI Search runbook).")
-    if stage == "data":
+    if stage in ("data", "probe"):
         if denied:
             return "The app lacks read access to a Gold or Silver table. Check the grants in the app runbook, step 3."
         if missing:
