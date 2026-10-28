@@ -26,5 +26,11 @@ done
 rm -rf "$TMP"
 [ $BAD = 0 ] || { echo "Workspace copy does not match the repo; not deploying."; exit 1; }
 [ "$1" = "--check" ] && exit 0
+# Free Edition stops apps after ~24 hours; a stopped app cannot be deployed to.
+STATE=$(databricks apps get "$APP" -p "$PROFILE" -o json | python3 -c "import json,sys;print(json.load(sys.stdin).get('compute_status',{}).get('state'))")
+if [ "$STATE" != ACTIVE ]; then
+  echo "App compute is $STATE; starting it first."
+  databricks apps start "$APP" -p "$PROFILE" -o json --timeout 20m >/dev/null
+fi
 databricks apps deploy "$APP" --source-code-path "/Workspace$DEST" -p "$PROFILE" -o json --timeout 20m \
   | python3 -c "import json,sys;d=json.load(sys.stdin);print('deployment', d['deployment_id'], d['status'])"
