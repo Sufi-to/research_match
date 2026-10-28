@@ -101,18 +101,18 @@ class IdentityBatchTests(unittest.TestCase):
     def test_deliberate_accept_and_rerun_before_and_after_build(self):
         self.enable()
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), len(self.NAMES))
+        self.assertEqual(self.count(), len(self.targets))
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), len(self.NAMES))
+        self.assertEqual(self.count(), len(self.targets))
         self.db.execute("UPDATE entity_resolution_review_current SET status='verified'")
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), len(self.NAMES))
+        self.assertEqual(self.count(), len(self.targets))
 
     def test_existing_accept_is_not_duplicated(self):
         self.add_decision("accept")
         self.enable()
         self.db.execute(self.insert)
-        self.assertEqual(self.count(), len(self.NAMES))
+        self.assertEqual(self.count(), len(self.targets))
 
     def test_changed_evidence_blocks_entire_batch(self):
         self.db.execute("UPDATE entity_resolution_review_current SET evidence_hash='changed' WHERE researcher_id='0'")
@@ -172,6 +172,63 @@ class IdentityBatch03Tests(IdentityBatchTests):
         for _, cid, aid, _, _ in self.targets:
             self.assertNotIn(cid, earlier)
             self.assertNotIn(aid, earlier)
+
+
+class IdentityBatch04Tests(IdentityBatch03Tests):
+    """Split ORCIDs: several author records per researcher, accepted together."""
+    SQL = (ROOT / "sql/16_review_identity_batch_04.sql").read_text()
+    PREFIX = "rm_batch04"
+    NAMES = {"Ahed Abugabah", "Ahmed Seffah", "Belal AlSinglawi", "Edmund Evangelista", "Farkhund Iqbal"}
+    VERIFIED_SIBLING = "https://openalex.org/A5068661949"  # Ahed Abugabah's main record
+
+    def setUp(self):
+        super().setUp()
+        # Regroup the fixture: records sharing an ORCID belong to one researcher.
+        people = {}
+        for _, cid, _, orcid, _ in self.targets:
+            rid = people.setdefault(orcid, str(len(people)))
+            self.db.execute("UPDATE entity_resolution_review_current SET researcher_id=?, "
+                            "quality_flags='[\"shared_orcid_multiple_author_ids\"]' WHERE candidate_id=?", (rid, cid))
+        self.db.execute("DELETE FROM researchers_current")
+        for orcid, rid in people.items():
+            self.db.execute("INSERT INTO researchers_current VALUES (?,?,?,?)",
+                            (rid, "profile:" + rid, json.dumps([orcid]), "[]"))
+        ahed = next(t[3] for t in self.targets if t[0] == "Ahed Abugabah")
+        self.db.execute("INSERT INTO authors_current VALUES (?,?)", (self.VERIFIED_SIBLING, ahed))
+        self.db.execute("INSERT INTO entity_resolution_review_current VALUES (?,?,?,?,?,?,?)",
+                        ("main", people[ahed], self.VERIFIED_SIBLING, "h", "profile_orcid", "verified",
+                         '["shared_orcid_multiple_author_ids"]'))
+
+    def test_every_split_record_is_listed(self):
+        by_orcid = {}
+        for name, _, aid, orcid, _ in self.targets:
+            by_orcid.setdefault(orcid, set()).add(aid)
+            self.assertEqual({t[0] for t in self.targets if t[3] == orcid}, {name})
+        self.assertEqual(len(self.targets), 11)
+        self.assertTrue(all(len(aids) >= 2 for aids in by_orcid.values()))
+
+    def test_no_overlap_with_batch_03(self):
+        for _, cid, aid, _, _ in self.targets:
+            self.assertNotIn(cid, IdentityBatch03Tests.SQL)
+            self.assertNotIn(aid, IdentityBatch03Tests.SQL)
+
+    def test_unflagged_candidate_blocks_entire_batch(self):
+        self.db.execute("UPDATE entity_resolution_review_current SET quality_flags='[]' WHERE candidate_id=?",
+                        (self.targets[0][1],))
+        self.assert_blocked()
+
+    def test_sibling_verified_for_another_researcher_blocks_batch(self):
+        self.db.execute("UPDATE entity_resolution_review_current SET researcher_id='other' WHERE candidate_id='main'")
+        self.assert_blocked()
+
+    def test_records_of_one_orcid_split_across_researchers_block_batch(self):
+        seffah = [t[1] for t in self.targets if t[0] == "Ahmed Seffah"]
+        self.db.execute("UPDATE entity_resolution_review_current SET researcher_id='elsewhere' WHERE candidate_id=?",
+                        (seffah[0],))
+        self.db.execute("INSERT INTO researchers_current SELECT 'elsewhere', 'p', profile_orcids, quality_flags "
+                        "FROM researchers_current WHERE researcher_id=("
+                        "SELECT researcher_id FROM entity_resolution_review_current WHERE candidate_id=?)", (seffah[1],))
+        self.assert_blocked()
 
 
 if __name__ == "__main__":
