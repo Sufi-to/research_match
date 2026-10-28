@@ -1,6 +1,6 @@
 ---
 name: rm-databricks-run
-description: Run ResearchMatch work in Databricks from the terminal. Covers executing a workspace notebook (02, 03, 05, 10, 12 or 14) as a one-time serverless job and reading its printed output, plus read-only SQL checks against the warehouse (counts, SQL 06/08/11 checks, identity decisions, table properties). Use this whenever the user asks to rebuild Silver or Gold, sync, check or test the AI Search index, verify counts, inspect live tables or run a notebook "for them", even if they don't mention jobs or the CLI.
+description: Run ResearchMatch work in Databricks from the terminal. Covers a read-only health check of the endpoint, index, app and source retention, executing a workspace notebook (02, 03, 05, 10, 12 or 14) as a one-time serverless job and reading its printed output, plus read-only SQL checks against the warehouse (counts, SQL 06/08/11 checks, identity decisions, table properties). Use this whenever the user asks to rebuild Silver or Gold, sync, check or test the AI Search index, verify counts, inspect live tables, check whether things are still healthy, or run a notebook "for them", even if they don't mention jobs or the CLI.
 ---
 
 # Running ResearchMatch notebooks and SQL in Databricks
@@ -21,6 +21,23 @@ Databricks access is via CLI profile `tom` (override with `RM_PROFILE`).
   --language PYTHON --overwrite`). Workspace copies may carry an extra
   serverless-environment header; that alone is harmless.
 - **Notebook 13 is frozen** and only works against the seven-profile Gold build.
+
+## Health check (start here when anything looks wrong)
+
+```bash
+.claude/skills/rm-databricks-run/scripts/health_check.sh
+```
+
+This takes about 10 seconds and is read-only. It prints PASS/FAIL for each of these:
+- the endpoint `vs_endpoint_1` is ONLINE;
+- the index is ready and uses `databricks-gte-large-en`;
+- the indexed rows equal Gold `current_build.document_count`;
+- the search source table keeps 365 days of history;
+- the app is running.
+
+It exits 1 on any failure. Each FAIL names the likely fix, and `references/rebuild.md`
+has the details. It does not check the app's grants; the in-app connection check
+covers those.
 
 ## Run a notebook
 

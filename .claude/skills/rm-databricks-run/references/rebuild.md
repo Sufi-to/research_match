@@ -15,6 +15,8 @@
    `status`, then `test`. Poll with
    `databricks vector-search-indexes get-index workspace.researchmatch_gold.researcher_profiles_index`.
 6. **App:** use the `rm-app-deploy` skill. Connection check should show the new count.
+7. **Health check:** `scripts/health_check.sh` should be all PASS, with the index rows equal
+   to the new `document_count`.
 
 ## Traps seen on 2026-10-27
 

@@ -58,7 +58,9 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
 ## Project skills (`.claude/skills/`)
 
 - `rm-databricks-run`: run workspace notebooks as one-time jobs and read their output;
-  read-only SQL checks; rebuild order and Free Edition traps (`references/rebuild.md`).
+  read-only SQL checks; `scripts/health_check.sh` (endpoint, index rows vs Gold, app,
+  retention: run it first when something breaks); rebuild order and Free Edition
+  traps (`references/rebuild.md`).
 - `rm-app-deploy`: upload `app/`, verify the workspace copy byte-for-byte, redeploy,
   and check the app's grants.
 - `rm-pre-push`: scan unpushed commits for emails, workspace details and secrets
