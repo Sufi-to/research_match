@@ -113,3 +113,21 @@ and `test`, the app check and `health_check.sh`.
 - **Ian Michael, Moo Sung Kim:** their registry ORCIDs are not on any collected
   OpenAlex author; a source refresh that collects authors by ORCID would be needed.
 - **Eleven with no registry match:** no ORCID evidence is available.
+
+## Follow-up: same lookup for the remaining CTI profiles (2026-10-28, batch 06 attempt)
+
+The four CTI profiles without a usable profile ORCID were checked the same way
+(read-only). **Nobody passed, so there is no batch 06.**
+
+| Researcher | Registry result | Why held out |
+|---|---|---|
+| Anwer Al-Dulaimi | no match | no ORCID evidence |
+| Azka Wani | one match, current ZU employment (`0000-0003-3562-8044`) | no collected OpenAlex author carries the ORCID; needs a collection refresh |
+| Butros Dahu | one match via family-name search ("Butros M. Dahu"), ZU 2025– (`0000-0001-5880-2450`) | the matching OpenAlex author has 0 collected works |
+| Feras Al Obeidat | two ORCID records | fails the single-match rule |
+
+Wani's and Dahu's ZU profiles link to orcid.org without a valid ORCID (Silver flag
+`unusable_profile_orcid`), which batch 05's guard would also have blocked.
+The remaining CTI gaps (Naqi, Bataineh, Allozi: profile ORCIDs that no collected
+OpenAlex author carries; Ashraf Khalil: unresolved campus profile) also need new
+collection, so further coverage now depends on a source refresh.

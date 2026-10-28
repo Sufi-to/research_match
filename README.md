@@ -98,9 +98,11 @@ profiles), and batch 05 added ten College of Business researchers whose ORCIDs c
 from the public ORCID registry (current ZU employment, ORCID required on the OpenAlex
 author). Gold `7fae22e6…` now holds **27 profiles and 1,529 eligible publications**
 across both colleges, with zero SQL 08/11 violations, and the index content scan
-passed for all 27. Next: the user's in-app check, then independent relevance review
-using the [manual evaluation template](docs/matching_evaluation_review.md); the
-remaining Business profiles need new evidence (see batch 05's held-out list).
+passed for all 27. The same registry lookup found no further CTI researchers, so more
+coverage needs a source refresh (which first needs a way to carry existing identity
+approvals forward). The independent relevance review using the
+[manual evaluation template](docs/matching_evaluation_review.md) is deferred by the
+user (2026-10-28).
 
 ## Run offline tests
 

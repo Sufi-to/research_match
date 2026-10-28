@@ -110,9 +110,12 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
 Pilot of 27 verified researcher identities after batch 05 (target: ~50 across
 Business and Technological Innovation). Bronze, Silver v2, Gold, AI Search index, notebooks
 13/14 and the deployed app `researchmatch-pilot` are user-confirmed in Databricks.
-**Next milestone: independent relevance review** (`docs/matching_evaluation_review.md`)
-now that both colleges are covered; the remaining Business profiles need new identity
-evidence (see `docs/identity_review_batch_05.md`).
+The independent relevance review (`docs/matching_evaluation_review.md`) was **deferred by
+the user on 2026-10-28** (labeller and format still to choose). Coverage without new
+collection is exhausted (batch 06 lookup found nobody; see `docs/identity_review_batch_05.md`).
+**Next coverage needs a source refresh**, and identity evidence hashes include source record
+keys, so a refresh would make all accepted decisions stale. Design a re-attestation path
+(carry forward unchanged ORCID/author links with one bulk approval) before refreshing.
 
 **2026-10-27:** Free Edition had deleted endpoint `vs_endpoint_1`. It was recreated
 (same name, STANDARD) via notebook 12 run as one-time jobs; the orphaned index

@@ -114,7 +114,8 @@ def show_result(st, result, team=None):
     if status == "validation_passed":
         st.success("Connection and evidence validation passed.")
         st.text(f"{result['researchers']} researchers · {result['eligible_publications']} eligible publications")
-        st.text(f"{result['possible_version_group_count']} same-title groups need review; none were merged.")
+        st.text(f"{result['possible_version_group_count']} same-title groups (possible duplicate versions): "
+                "each counted once, not merged.")
     else:
         st.text("Research topic: " + result["query"])
         if status in ("needs_refinement", "insufficient_evidence", "partial_evidence_only"):
