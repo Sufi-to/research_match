@@ -1,8 +1,15 @@
 # Identity review batch 05 — 2026-10-28 (College of Business, ORCID registry)
 
-Status: **awaiting the user's review.** No decisions have been recorded. The user
-chose the ORCID registry method on 2026-10-28; approving these ten identities is a
-separate decision.
+Status: **approved by the user on 2026-10-28** (ten accepts recorded under their
+identity via SQL 17's guarded INSERT). Silver `a3d5ec1a…`: 27 verified researchers, 34
+verified and 89 pending candidates; SQL 08 checks zero. Gold `7fae22e6…`: 27 profiles,
+1,529 publications, 1,712 topics, 4,196 topic-evidence links; SQL 11 checks zero. One
+index sync: content scan passed for all 27 documents. Search checks: 13 of 14
+hypothesis hits plus 2 out-of-scope. The miss is `adoption` (ANN only), where
+Henderson, Abdel-Maksoud and Khalifa now rank above Ahmed Shuhaiber; hybrid search
+still ranks him second. The hypotheses were written for the seven-person pool, so this
+reflects the larger pool, not a validated regression. `health_check.sh` all PASS.
+The user's in-app check is still to come.
 
 ## Method: ORCID registry lookup
 

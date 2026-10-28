@@ -46,7 +46,7 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Guarded identity review SQL](sql/07_review_identity_batch_02.sql): previews by default; records only deliberately enabled, checked approvals.
 - [Identity batch 03](docs/identity_review_batch_03.md): six more ORCID-verified CTI researchers, approved via [SQL 15](sql/15_review_identity_batch_03.sql); Silver/Gold/index rebuilt for 13 profiles.
 - [Identity batch 04](docs/identity_review_batch_04.md): split-ORCID records for four more CTI researchers (plus Ahed Abugabah's extra records) via [SQL 16](sql/16_review_identity_batch_04.sql); approved and rebuilt for 17 profiles.
-- [Identity batch 05](docs/identity_review_batch_05.md): ten College of Business researchers identified through the public ORCID registry via [SQL 17](sql/17_review_identity_batch_05.sql); awaiting review.
+- [Identity batch 05](docs/identity_review_batch_05.md): ten College of Business researchers identified through the public ORCID registry via [SQL 17](sql/17_review_identity_batch_05.sql); approved and rebuilt for 27 profiles.
 - [Publication-version upgrade](docs/publication_versions.md): evidence-backed Silver v2 grouping and exact Databricks upgrade steps.
 - [Publication-version checks](sql/08_check_publication_versions.sql): read-only checks of contribution counts, provenance and eligibility.
 - [Gold DDL](sql/09_create_gold_tables.sql): profile/evidence snapshots and a CDF-enabled search-source table.
@@ -93,9 +93,14 @@ offers suggested teams (evidence coverage), researcher profiles and step-specifi
 error guidance, and caches its validated state: after one cold validation, searches
 run a single build-check statement (verified in query history on 2026-10-28).
 Independent relevance labels remain outstanding, so no accuracy claim is made.
-Next: broader profile coverage (identity batch 04), then independent relevance
-review using the [manual evaluation template](docs/matching_evaluation_review.md)
-once the pool is large enough that labels will not go stale.
+Batch 04 then accepted split-ORCID records for four more CTI researchers (17
+profiles), and batch 05 added ten College of Business researchers whose ORCIDs come
+from the public ORCID registry (current ZU employment, ORCID required on the OpenAlex
+author). Gold `7fae22e6…` now holds **27 profiles and 1,529 eligible publications**
+across both colleges, with zero SQL 08/11 violations, and the index content scan
+passed for all 27. Next: the user's in-app check, then independent relevance review
+using the [manual evaluation template](docs/matching_evaluation_review.md); the
+remaining Business profiles need new evidence (see batch 05's held-out list).
 
 ## Run offline tests
 

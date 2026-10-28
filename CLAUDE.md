@@ -107,12 +107,12 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
 
 ## Current state (as of 2026-10-28)
 
-Pilot of 17 verified researcher identities after batch 04 (target: ~50 across
+Pilot of 27 verified researcher identities after batch 05 (target: ~50 across
 Business and Technological Innovation). Bronze, Silver v2, Gold, AI Search index, notebooks
 13/14 and the deployed app `researchmatch-pilot` are user-confirmed in Databricks.
-**Next milestone: broader profile coverage** (batch 05, Business), then the independent
-relevance review (`docs/matching_evaluation_review.md`) once the pool is large enough
-that labels won't go stale.
+**Next milestone: independent relevance review** (`docs/matching_evaluation_review.md`)
+now that both colleges are covered; the remaining Business profiles need new identity
+evidence (see `docs/identity_review_batch_05.md`).
 
 **2026-10-27:** Free Edition had deleted endpoint `vs_endpoint_1`. It was recreated
 (same name, STANDARD) via notebook 12 run as one-time jobs; the orphaned index
@@ -139,7 +139,10 @@ approved and rebuilt: Silver `0886c97d…`, Gold `164549a3…`, **17 profiles**,
 publications; index synced and tested, app redeployed, health check all PASS. Business
 profiles list no ORCID, so batch 05 (`sql/17`) uses the public ORCID registry (single
 match with current ZU employment, ORCID pinned and required on the OpenAlex author);
-ten Business candidates await the user's approval.
+the user approved ten Business researchers and the rebuild gave Silver `a3d5ec1a…`,
+Gold `7fae22e6…`, **27 profiles**, 1,529 publications; index synced (content scan
+passed; 13/14 search hypotheses, the `adoption` ANN miss reflecting the larger pool),
+health check all PASS.
 
 Databricks access: CLI profile `tom` (OAuth). Use read-only commands by default;
 create/delete/modify resources only with explicit user approval. Independent relevance labels, broader profile coverage, funding
