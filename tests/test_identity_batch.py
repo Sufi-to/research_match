@@ -90,7 +90,7 @@ class IdentityBatchTests(unittest.TestCase):
             self.assertRegex(cid, r"^[a-f0-9]{64}$")
             self.assertRegex(evidence, r"^[a-f0-9]{64}$")
             self.assertRegex(aid, r"^https://openalex.org/A\d+$")
-            self.assertRegex(orcid, r"^https://orcid.org/[\d-]+$")
+            self.assertRegex(orcid, r"^https://orcid.org/\d{4}-\d{4}-\d{4}-\d{3}[\dX]$")
 
     def test_default_run_all_does_not_approve(self):
         for query in self.previews:
@@ -228,6 +228,40 @@ class IdentityBatch04Tests(IdentityBatch03Tests):
         self.db.execute("INSERT INTO researchers_current SELECT 'elsewhere', 'p', profile_orcids, quality_flags "
                         "FROM researchers_current WHERE researcher_id=("
                         "SELECT researcher_id FROM entity_resolution_review_current WHERE candidate_id=?)", (seffah[1],))
+        self.assert_blocked()
+
+
+class IdentityBatch05Tests(IdentityBatch03Tests):
+    """Business profiles without a profile ORCID; the ORCID comes from the registry."""
+    SQL = (ROOT / "sql/17_review_identity_batch_05.sql").read_text()
+    PREFIX = "rm_batch05"
+    NAMES = {"Ahmed Abdel-Maksoud", "Alexandra Henderson", "Anestis Fotiadis", "Brendan Galbraith",
+             "Fathima Saleem", "Ismail Badraoui", "Jamel Khenfer", "Karim Hegazy", "Khadija Abdulrahman",
+             "Mariem Khalifa"}
+
+    def setUp(self):
+        super().setUp()
+        self.db.execute("UPDATE entity_resolution_review_current SET match_method='exact_normalized_name'")
+        self.db.execute("UPDATE researchers_current SET profile_orcids='[]'")
+
+    def test_no_overlap_with_earlier_batches(self):
+        for earlier in (IdentityBatch03Tests.SQL, IdentityBatch04Tests.SQL):
+            for _, cid, aid, _, _ in self.targets:
+                self.assertNotIn(cid, earlier)
+                self.assertNotIn(aid, earlier)
+
+    def test_missing_or_conflicting_profile_orcid_blocks_batch(self):
+        # A profile ORCID would make this the profile method's case, not the registry's.
+        self.db.execute("UPDATE researchers_current SET profile_orcids=? WHERE researcher_id='0'",
+                        (json.dumps([self.targets[0][3]]),))
+        self.assert_blocked()
+
+    def test_author_without_registry_orcid_blocks_batch(self):
+        self.db.execute("UPDATE authors_current SET orcid=NULL WHERE openalex_author_id=?", (self.targets[0][2],))
+        self.assert_blocked()
+
+    def test_profile_orcid_method_is_not_accepted_here(self):
+        self.db.execute("UPDATE entity_resolution_review_current SET match_method='profile_orcid' WHERE researcher_id='0'")
         self.assert_blocked()
 
 

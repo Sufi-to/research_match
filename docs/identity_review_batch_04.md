@@ -1,8 +1,13 @@
 # Identity review batch 04 — 2026-10-28
 
-Status: **awaiting the user's review.** No decisions have been recorded. This reviews
-the September 5 collection as loaded in Silver `b239f898…`, not a fresh check of live
-websites.
+Status: **approved by the user on 2026-10-28** (eleven accepts recorded under their
+identity via SQL 16's guarded INSERT). Silver `0886c97d…`: 17 verified researchers, 24
+verified and 99 pending candidates; SQL 08 checks zero. Gold `164549a3…`: 17 profiles,
+1,387 publications, 1,504 topics, 3,786 topic-evidence links; SQL 11 checks zero. One
+index sync: content scan passed for all 17 documents and the 16 search checks matched
+earlier results (14 hypothesis hits, 2 out-of-scope). App redeployed; `health_check.sh`
+all PASS. The user's in-app check is still to come. This reviewed the September 5
+collection as loaded in Silver `b239f898…`, not a fresh check of live websites.
 
 ## Why this batch is split-ORCID records, not Business researchers
 
