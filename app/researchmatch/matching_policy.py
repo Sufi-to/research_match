@@ -185,7 +185,7 @@ def decode_value(value):
     raise ValueError("Unexpected scan value encoding for a scalar metadata field")
 
 def scan_matches(w, cfg, docs):
-    # Seven rows: request eight to detect unexpected extra documents. No vector printing.
+    # Request one more than MAX_PROFILES to detect unexpected extra documents. No vector printing.
     response = api_call(w, "POST", index_path(cfg, "/scan"), body={"num_results": MAX_PROFILES + 1})
     rows = []
     for entry in response.get("data", []):
@@ -440,7 +440,7 @@ def match_candidates(plan, retrieved, evidence, snapshot, top_k=3):
     output = {"policy_version": MATCH_POLICY, "gold_build_id": snapshot["gold_build_id"],
               "silver_build_id": snapshot["silver_build_id"], "query": plan["query"],
               "status": state, "message": message, "candidates": [], "partial_candidates": [],
-              "scope": "Seven verified pilot researchers; incomplete collected research evidence.",
+              "scope": "Verified pilot researchers only; incomplete collected research evidence.",
               "limitations": ["Uncalibrated English lexical screening; paraphrases/negation can be missed.",
                               "Scores are not confidence, scientific quality or confirmed suitability.",
                               "Current employment/availability and funding history are not established.",

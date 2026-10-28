@@ -48,7 +48,7 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Publication-version upgrade](docs/publication_versions.md): evidence-backed Silver v2 grouping and exact Databricks upgrade steps.
 - [Publication-version checks](sql/08_check_publication_versions.sql): read-only checks of contribution counts, provenance and eligibility.
 - [Gold DDL](sql/09_create_gold_tables.sql): profile/evidence snapshots and a CDF-enabled search-source table.
-- [Gold builder](notebooks/10_build_gold.py): validate or publish the seven verified profiles from one frozen Silver build.
+- [Gold builder](notebooks/10_build_gold.py): validate or publish the verified profiles from one frozen Silver build.
 - [Gold review SQL](sql/11_review_gold.sql): counts, evidence, freshness, search previews and integrity checks.
 - [Gold runbook](docs/gold_runbook.md): exact Databricks steps, expected results, resource bounds and recovery.
 - [AI Search setup and tests](notebooks/12_setup_and_test_ai_search.py): discover/probe embedding models, create the triggered index, verify contents and test topics.
@@ -82,10 +82,18 @@ it was recreated under the same name and the index rebuilt from unchanged Gold
 search checks reproduced the original results. The app is deployed as
 `researchmatch-pilot`. Its connection check returned 7 researchers, 437 eligible
 publications and 19 same-title groups, and the user reported good results from
-their own live searches. Independent relevance labels remain outstanding, so no
-accuracy claim is made. Next: independent relevance review using the
-[manual evaluation template](docs/matching_evaluation_review.md), then broader
-profile coverage. No new identity approvals, Bronze uploads or Gold rebuilds are needed.
+their own live searches. Identity batch 03 then added six ORCID-verified researchers
+(user-approved): Silver `b239f898…` and Gold `6fcc7472…` now hold 13 verified
+profiles, 1,024 eligible publications and 37 same-title groups, with zero SQL 08/11
+violations. The index was recreated with 365-day source retention after a sync
+failed on expired Delta history, and all 16 search checks passed again. The app now
+offers suggested teams (evidence coverage), researcher profiles and step-specific
+error guidance, and caches its validated state: after one cold validation, searches
+run a single build-check statement (verified in query history on 2026-10-28).
+Independent relevance labels remain outstanding, so no accuracy claim is made.
+Next: broader profile coverage (identity batch 04), then independent relevance
+review using the [manual evaluation template](docs/matching_evaluation_review.md)
+once the pool is large enough that labels will not go stale.
 
 ## Run offline tests
 

@@ -103,13 +103,14 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
   paragraphs.
 - Commit messages use conventional prefixes (`feat:`, `fix:`, `docs:`).
 
-## Current state (as of 2026-10-27)
+## Current state (as of 2026-10-28)
 
 Pilot of 13 verified researcher identities after batch 03 (target: ~50 across
 Business and Technological Innovation). Bronze, Silver v2, Gold, AI Search index, notebooks
 13/14 and the deployed app `researchmatch-pilot` are user-confirmed in Databricks.
-**Next milestone: independent relevance review** (`docs/matching_evaluation_review.md`),
-then broader profile coverage.
+**Next milestone: broader profile coverage** (identity batch 04), then the independent
+relevance review (`docs/matching_evaluation_review.md`) once the pool is large enough
+that labels won't go stale.
 
 **2026-10-27:** Free Edition had deleted endpoint `vs_endpoint_1`. It was recreated
 (same name, STANDARD) via notebook 12 run as one-time jobs; the orphaned index
@@ -126,6 +127,12 @@ It also needed CAN_USE on the endpoint (now in the runbook), and
 connection check (7 researchers, 437 publications, 19 same-title groups) and
 reported good results from their own live searches.
 
+**2026-10-28:** Batch 03 (six ORCID-verified CTI researchers) approved and rebuilt:
+Silver `b239f898…`, Gold `6fcc7472…`, 13 profiles, 1,024 publications, 37 same-title
+groups. The index source table now keeps 365 days of Delta history (a sync had failed
+on the 7-day default). The app caches validated state; query history confirmed one
+cold validation (~40 s) and then one statement per search.
+
 Databricks access: CLI profile `tom` (OAuth). Use read-only commands by default;
 create/delete/modify resources only with explicit user approval. Independent relevance labels, broader profile coverage, funding
-evidence and team assembly remain future milestones.
+evidence and validated team fit remain future milestones.

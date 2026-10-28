@@ -284,7 +284,7 @@ def decode_value(value):
 
 
 def scan_matches(w, cfg, docs):
-    # Seven rows: request eight to detect unexpected extra documents. No vector printing.
+    # Request one more than MAX_PROFILES to detect unexpected extra documents. No vector printing.
     response = api_call(w, "POST", index_path(cfg, "/scan"), body={"num_results": MAX_PROFILES + 1})
     rows = []
     for entry in response.get("data", []):

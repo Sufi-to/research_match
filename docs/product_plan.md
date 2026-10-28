@@ -39,10 +39,14 @@ passed. The app was deployed as `researchmatch-pilot` with read-only grants plus
 CAN_USE on the endpoint. The user confirmed the in-app connection check (7
 researchers, 437 publications, 19 same-title groups) and reported good results
 from their own live searches. These are pilot acceptance checks, not independent
-relevance labels. All 232 tests pass locally. Do not recreate data/search resources
-unless they are missing. Independent relevance review, broader profile coverage,
-verified funding and team matching remain
-later milestones, not completed features.
+relevance labels. Identity batch 03 (six ORCID-verified researchers, user-approved)
+then grew the pilot to 13 profiles, 1,024 eligible publications and 37 same-title
+groups (Gold `6fcc7472…`). The user confirmed the app against it, and the cached app
+state was verified in query history on 2026-10-28. All 275 tests pass locally. Do not
+recreate data/search resources unless they are missing. Broader profile coverage (next:
+batch 04), then independent relevance review, verified funding and validated team
+matching remain later milestones, not completed features. The app's suggested team is
+evidence coverage only.
 
 The first implementation milestone is a pilot of approximately 50 researchers across
 Business and Technological Innovation: enter a topic, retrieve five relevant ZU

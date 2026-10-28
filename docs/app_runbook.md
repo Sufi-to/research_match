@@ -4,7 +4,8 @@
 
 The user confirmed notebook 14's validate/match/evaluate runs and accepted moving
 on to the interface. No completed independent relevance labels were supplied, so
-the app remains an experimental, seven-researcher evidence browser. It is not a
+the app remains an experimental evidence browser over the verified pilot researchers
+(13 after identity batch 03). It is not a
 validated expert recommender. Notebook 14's strict rules are unchanged.
 
 The source folder is [`app/`](../app). This is a **Databricks App, not another
@@ -63,9 +64,12 @@ non-commercial experiment, not always-on production hosting.
      requirements.txt
      researchmatch/
        __init__.py
+       errors.py
        matching_policy.py
        presentation.py
+       profiles.py
        service.py
+       team.py
        warehouse.py
    ```
 
@@ -131,7 +135,7 @@ embedding-serving permission failure, inspect access to the existing
 `databricks-gte-large-en`; do not create another serving endpoint.
 
 This pilot uses **app authorization**: everyone allowed to use the app sees the
-same service-principal-accessible seven-researcher data. Restrict the app to yourself
+same service-principal-accessible pilot data. Restrict the app to yourself
 and approved pilot reviewers. It does not implement per-user research permissions.
 No user token is read from request headers or displayed.
 [Databricks app authorization](https://docs.databricks.com/aws/en/dev-tools/databricks-apps/auth)
@@ -142,9 +146,10 @@ No user token is read from request headers or displayed.
    That folder must directly contain `app.yaml`, not an extra nested `app` folder.
    Databricks installs the pinned dependencies and starts Streamlit.
 2. Open the app. Loading the page and typing in the form perform **no data queries**.
-3. Click **Check connection and data**. With unchanged data, expect seven researchers,
-   437 eligible publications and 19 unverified same-title groups. This runs SQL reads
-   and an index-content scan, but no embedding/search inference.
+3. Click **Check connection and data**. With the current Gold build (`6fcc7472…`, after
+   identity batch 03), expect 13 researchers, 1,024 eligible publications and 37
+   unverified same-title groups. (The first seven-researcher build showed 7 / 437 / 19.)
+   This runs SQL reads and an index-content scan, but no embedding/search inference.
 4. Enter `RFID implementation in hospitals` and submit. The local evidence replay
    produced a direct-term Ahed candidate; live results still need checking.
 5. Try the previous medical-imaging and transport queries. Expect the partial-evidence
@@ -190,11 +195,14 @@ contain a reference and exception type, not raw SQL/API messages or user queries
 
 ## Local verification and limits
 
-Checkpoint: **232 tests passed with no skips** in the app-enabled local environment,
+Checkpoint: **275 tests passed with no skips** in the app-enabled local environment,
 including four Streamlit interaction tests, the SQL-adapter/service composition
 test and the no-notebook-markers check. Deployed 2026-10-27 as `researchmatch-pilot`
 from `/Workspace/Users/<you>/researchmatch-app`. The user confirmed the connection
-check and reported good results from their own live searches.
+check and reported good results from their own live searches. After batch 03 the user
+confirmed the app with 13 researchers. The cache was deployed on 2026-10-28; query
+history then showed one cold validation (about 40 s including an ~8 s warehouse wake)
+followed by searches that each ran a single build-check statement.
 
 ```sh
 python3 -m venv .venv
