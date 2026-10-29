@@ -126,7 +126,7 @@ synced. The user approved batches 06 (registry rule; 4 people, with a documented
 (new affiliation rule: ORCID on the OpenAlex author, last known ZU, at least 10
 ZU-affiliated authorships; 5 people); the user recorded them and the rebuild gave Silver
 `b372be7f…`, Gold `1f6f4254…`, **36 profiles**, 2,097 publications, index synced,
-health check all PASS. Remaining gaps (14 profiles): no ORCID link to an OpenAlex author
+health check all PASS. The user confirmed the app with 36 researchers. Remaining gaps (14 profiles): no ORCID link to an OpenAlex author
 (Bataineh, Wani, Allozi, Naqi), no ORCID anywhere (Syriopoulos, Bostan, Memon, Sposato,
 Abdelaal, Al Messabi, Muhammad Hassan), too thin (Ian Michael), or unresolved campus
 profile (Ashraf Khalil); they need manual review or ZU profiles that publish ORCIDs.

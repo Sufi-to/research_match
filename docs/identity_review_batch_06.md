@@ -9,7 +9,8 @@ ran the guarded INSERTs; Claude Code's auto-mode check blocked them for Claude).
 `b372be7f…`: 36 verified researchers, 43 verified decisions, 0 stale; SQL 08 zero. Gold
 `1f6f4254…`: 36 profiles, 2,097 publications, 5,850 topic-evidence links; SQL 11 zero.
 One index sync; `health_check.sh` all PASS (index synced to source version 8);
-notebook 12 `status` and `test` succeeded. The user's in-app check is still to come.
+notebook 12 `status` and `test` succeeded. **The user confirmed the app on 2026-10-29
+("everything looks good").**
 
 ## Method
 

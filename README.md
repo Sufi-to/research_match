@@ -109,7 +109,8 @@ user (2026-10-28). On 2026-10-29 a targeted supplementary collection
 invalidating any approval, and batches 06–07 added nine researchers (four by the ORCID
 registry rule, five by a new, weaker affiliation rule). Gold `1f6f4254…` now holds **36
 profiles and 2,097 eligible publications**, with zero SQL 08/11 violations, the index
-synced and `health_check.sh` all PASS.
+synced and `health_check.sh` all PASS. The user checked the app against it and confirmed
+everything looks good (2026-10-29).
 
 ## Run offline tests
 

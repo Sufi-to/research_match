@@ -50,8 +50,11 @@
   message.** The run export includes the notebook source, so the message text appears
   even when the run failed.
 - **Recording approvals can be blocked by Claude Code's auto-mode safety check**
-  ("Modify Shared Resources"). Then the user runs the batch SQL themselves (preview,
-  then permission `true`), or explicitly allows the INSERT.
+  ("Modify Shared Resources"). Then prepare the CTE-inlined INSERT payload locally and
+  give the user one `!` command to run it, or they run the batch SQL in the workspace
+  (preview, then permission `true`). Do not build helper scripts or edit permission
+  settings to get around the block; that is also refused ("Auto-Mode Bypass"), and
+  granting the permission is the user's decision.
 - **`apps deploy` stdout can come back empty** even when the deployment succeeds;
   `deploy_app.sh` now reports the app's active deployment instead.
 
