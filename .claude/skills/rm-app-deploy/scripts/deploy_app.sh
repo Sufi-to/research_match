@@ -32,5 +32,11 @@ if [ "$STATE" != ACTIVE ]; then
   echo "App compute is $STATE; starting it first."
   databricks apps start "$APP" -p "$PROFILE" -o json --timeout 20m >/dev/null
 fi
-databricks apps deploy "$APP" --source-code-path "/Workspace$DEST" -p "$PROFILE" -o json --timeout 20m \
-  | python3 -c "import json,sys;d=json.load(sys.stdin);print('deployment', d['deployment_id'], d['status'])"
+databricks apps deploy "$APP" --source-code-path "/Workspace$DEST" -p "$PROFILE" -o json --timeout 20m >/dev/null || true
+# The deploy command's stdout has come back empty even when the deployment succeeded,
+# so report the app's active deployment instead of parsing it.
+databricks apps get "$APP" -p "$PROFILE" -o json | python3 -c "
+import json,sys
+d=json.load(sys.stdin); a=d.get('active_deployment') or {}; s=a.get('status') or {}
+print('deployment', a.get('deployment_id'), a.get('create_time'), s.get('state'), '| app', (d.get('app_status') or {}).get('state'))
+sys.exit(0 if s.get('state') == 'SUCCEEDED' else 1)"

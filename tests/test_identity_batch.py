@@ -145,7 +145,7 @@ class IdentityBatchTests(unittest.TestCase):
         self.assert_blocked()
 
     def test_split_orcid_blocks_entire_batch(self):
-        self.db.execute("INSERT INTO authors_current VALUES ('another-author',?)", (self.targets[0][3],))
+        self.db.execute("INSERT INTO authors_current (openalex_author_id, orcid) VALUES ('another-author',?)", (self.targets[0][3],))
         self.assert_blocked()
 
     def test_work_orcid_conflict_blocks_entire_batch(self):
@@ -262,6 +262,81 @@ class IdentityBatch05Tests(IdentityBatch03Tests):
 
     def test_profile_orcid_method_is_not_accepted_here(self):
         self.db.execute("UPDATE entity_resolution_review_current SET match_method='profile_orcid' WHERE researcher_id='0'")
+        self.assert_blocked()
+
+
+class IdentityBatch06Tests(IdentityBatch05Tests):
+    """Registry rule; two profiles carry a reviewed unusable_profile_orcid exception."""
+    SQL = (ROOT / "sql/18_review_identity_batch_06.sql").read_text()
+    PREFIX = "rm_batch06"
+    NAMES = {"Mahmoud Agha", "Moo Sung Kim", "Feras Al Obeidat", "Butros Dahu"}
+    EXCEPTED = {"Feras Al Obeidat", "Butros Dahu"}
+
+    def setUp(self):
+        super().setUp()
+        for i, target in enumerate(self.targets):
+            if target[0] in self.EXCEPTED:
+                self.db.execute("UPDATE researchers_current SET quality_flags='[\"unusable_profile_orcid\"]' "
+                                "WHERE researcher_id=?", (str(i),))
+
+    def index_of(self, excepted):
+        return next(i for i, t in enumerate(self.targets) if (t[0] in self.EXCEPTED) == excepted)
+
+    def test_no_overlap_with_earlier_batches(self):
+        for earlier in (IdentityBatch03Tests.SQL, IdentityBatch04Tests.SQL, IdentityBatch05Tests.SQL):
+            for _, cid, aid, _, _ in self.targets:
+                self.assertNotIn(cid, earlier)
+                self.assertNotIn(aid, earlier)
+
+    def test_exception_is_scoped_to_listed_candidates(self):
+        i = self.index_of(excepted=False)
+        self.db.execute("UPDATE researchers_current SET quality_flags='[\"unusable_profile_orcid\"]' "
+                        "WHERE researcher_id=?", (str(i),))
+        self.assert_blocked()
+
+    def test_other_flag_on_excepted_profile_blocks_batch(self):
+        i = self.index_of(excepted=True)
+        self.db.execute("UPDATE researchers_current SET quality_flags='[\"unusable_profile_orcid\", "
+                        "\"profile_layout_unrecognized\"]' WHERE researcher_id=?", (str(i),))
+        self.assert_blocked()
+
+
+class IdentityBatch07Tests(IdentityBatch05Tests):
+    """Affiliation rule: ORCID on the OpenAlex author, last known ZU, >= 10 ZU authorships."""
+    SQL = (ROOT / "sql/19_review_identity_batch_07.sql").read_text()
+    PREFIX = "rm_batch07"
+    NAMES = {"Abiot Tessema", "Anwer Al-Dulaimi", "Catherine Nickerson", "Maytha Al Ali", "Mohammed Sualihu"}
+    ZU = "https://openalex.org/I91044093"
+
+    def setUp(self):
+        super().setUp()
+        self.db.execute("ALTER TABLE authors_current ADD COLUMN last_known_institution_ids")
+        self.db.execute("UPDATE authors_current SET last_known_institution_ids=?", (json.dumps([self.ZU]),))
+        for _, _, aid, orcid, _ in self.targets:
+            for n in range(10):
+                self.db.execute("INSERT INTO work_authorships_current VALUES (?,?,?,?)",
+                                (aid, orcid, "zu-work-%d" % n, json.dumps([self.ZU])))
+
+    def test_no_overlap_with_earlier_batches(self):
+        for earlier in (IdentityBatch03Tests.SQL, IdentityBatch04Tests.SQL, IdentityBatch05Tests.SQL,
+                        IdentityBatch06Tests.SQL):
+            for _, cid, aid, _, _ in self.targets:
+                self.assertNotIn(cid, earlier)
+                self.assertNotIn(aid, earlier)
+
+    def test_fewer_than_ten_zu_authorships_blocks_batch(self):
+        self.db.execute("DELETE FROM work_authorships_current WHERE openalex_author_id=? AND work_id='zu-work-0'",
+                        (self.targets[0][2],))
+        self.assert_blocked()
+
+    def test_non_zu_authorships_do_not_count(self):
+        self.db.execute("UPDATE work_authorships_current SET institution_ids='[]' "
+                        "WHERE openalex_author_id=? AND work_id='zu-work-0'", (self.targets[0][2],))
+        self.assert_blocked()
+
+    def test_last_known_institution_outside_zu_blocks_batch(self):
+        self.db.execute("UPDATE authors_current SET last_known_institution_ids='[]' WHERE openalex_author_id=?",
+                        (self.targets[0][2],))
         self.assert_blocked()
 
 

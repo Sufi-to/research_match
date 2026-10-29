@@ -44,8 +44,14 @@
   be followed by Gold (same profile count), one index sync and `status`.
 - **Equal row counts do not prove a sync finished.** When the profile count is
   unchanged, `indexed_row_count` already matches before the sync. Wait for notebook 12
-  `status` to succeed; `health_check.sh` only compares counts.
+  `status` to succeed; `health_check.sh` now also compares the index's processed source
+  version with the source table's latest version.
 - **Judge a run by its `RUN <id> SUCCESS|FAILED` line, never by grepping for a success
   message.** The run export includes the notebook source, so the message text appears
   even when the run failed.
+- **Recording approvals can be blocked by Claude Code's auto-mode safety check**
+  ("Modify Shared Resources"). Then the user runs the batch SQL themselves (preview,
+  then permission `true`), or explicitly allows the INSERT.
+- **`apps deploy` stdout can come back empty** even when the deployment succeeds;
+  `deploy_app.sh` now reports the app's active deployment instead.
 

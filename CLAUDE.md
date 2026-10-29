@@ -99,7 +99,10 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
   is never zero funding. Retrieval smoke checks are not accuracy claims — no
   independent relevance labels exist yet.
 - **Secrets and data.** `.env`, `data/` and `.venv/` are git-ignored. Never commit
-  them, put them in the `app/` folder, or upload them to a Volume.
+  them or put them in the `app/` folder. Never upload `.env`, `.venv/` or the whole
+  `data/` folder to a Volume; the only upload is a single checksum-verified landing
+  batch folder to `/Volumes/workspace/researchmatch_bronze/landing/`, as
+  `docs/data_collection_runbook.md` describes.
 - **Docs follow code.** When adding a stage, add its runbook in `docs/`, link it in
   the README "Project files" list, and update the README/product-plan status
   paragraphs.
@@ -118,8 +121,11 @@ keys), so gaps are filled with **targeted supplementary batches** that never re-
 verified authors or faculty pages (`collect_sources.py --source targeted`,
 `docs/data_collection_runbook.md` §4a). `targeted-20261029` is loaded: Silver
 `ce476f15…` (34 verified decisions, 0 stale), Gold `378f4211…` (27 profiles), index
-synced. Ten candidates await identity batches 06 (registry rule) and 07 (affiliation
-rule, needs the user's decision).
+synced. The user approved batches 06 (registry rule; 4 people, with a documented
+`unusable_profile_orcid` exception for Dahu and Al Obeidat; Ian Michael excluded) and 07
+(new affiliation rule: ORCID on the OpenAlex author, last known ZU, at least 10
+ZU-affiliated authorships; 5 people). Recording the accepts (`sql/18`, `sql/19`) and the
+rebuild to 36 profiles are pending.
 
 **2026-10-27:** Free Edition had deleted endpoint `vs_endpoint_1`. It was recreated
 (same name, STANDARD) via notebook 12 run as one-time jobs; the orphaned index

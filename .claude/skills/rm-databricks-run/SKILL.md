@@ -32,6 +32,7 @@ This takes about 10 seconds and is read-only. It prints PASS/FAIL for each of th
 - the endpoint `vs_endpoint_1` is ONLINE;
 - the index is ready and uses `databricks-gte-large-en`;
 - the indexed rows equal Gold `current_build.document_count`;
+- the index has processed the source table's latest Delta version (a finished sync);
 - the search source table keeps 365 days of history;
 - the app is running.
 

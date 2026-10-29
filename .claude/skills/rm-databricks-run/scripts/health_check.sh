@@ -34,6 +34,18 @@ DOCS=$(sql "SELECT document_count FROM workspace.researchmatch_gold.current_buil
 [ -n "$DOCS" ] && [ "$ROWS" = "$DOCS" ] && report "index rows $ROWS = Gold document_count" ok \
   || report "index rows vs Gold document_count" "index $ROWS, Gold $DOCS (sync the index with notebook 12)"
 
+# Equal row counts do not prove a finished sync; compare the processed source version.
+INDEXED=$(databricks api get "/api/2.0/vector-search/indexes/$INDEX" -p "$PROFILE" 2>/dev/null | python3 -c "
+import json,sys
+try:
+    s=json.load(sys.stdin)['status']; t=s.get('triggered_update_status') or {}
+    print(s.get('detailed_state'), t.get('last_processed_commit_version'))
+except Exception: print('unreadable None')")
+SOURCE_VERSION=$(sql "DESCRIBE HISTORY $SOURCE LIMIT 1" | cut -f1)
+set -- $INDEXED
+[ "$1" = ONLINE_NO_PENDING_UPDATE ] && [ "$2" = "$SOURCE_VERSION" ] && report "index synced to source version $2" ok \
+  || report "index freshness" "state $1, processed version $2, source version $SOURCE_VERSION (wait, or sync once with notebook 12)"
+
 RETENTION=$(sql "SHOW TBLPROPERTIES $SOURCE" | grep -c "Duration	interval 365 days")
 [ "$RETENTION" = 2 ] && report "source keeps 365 days of history" ok \
   || report "source retention" "expected log and deleted-file retention of 365 days (sql/09)"

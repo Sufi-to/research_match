@@ -48,6 +48,7 @@ complete collection. The loader defaults to validation only and needs no API key
 - [Identity batch 03](docs/identity_review_batch_03.md): six more ORCID-verified CTI researchers, approved via [SQL 15](sql/15_review_identity_batch_03.sql); Silver/Gold/index rebuilt for 13 profiles.
 - [Identity batch 04](docs/identity_review_batch_04.md): split-ORCID records for four more CTI researchers (plus Ahed Abugabah's extra records) via [SQL 16](sql/16_review_identity_batch_04.sql); approved and rebuilt for 17 profiles.
 - [Identity batch 05](docs/identity_review_batch_05.md): ten College of Business researchers identified through the public ORCID registry via [SQL 17](sql/17_review_identity_batch_05.sql); approved and rebuilt for 27 profiles.
+- [Identity batches 06–07](docs/identity_review_batch_06.md): four researchers via the ORCID registry ([SQL 18](sql/18_review_identity_batch_06.sql)) and five via a new affiliation rule ([batch 07](docs/identity_review_batch_07.md), [SQL 19](sql/19_review_identity_batch_07.sql)).
 - [Publication-version upgrade](docs/publication_versions.md): evidence-backed Silver v2 grouping and exact Databricks upgrade steps.
 - [Publication-version checks](sql/08_check_publication_versions.sql): read-only checks of contribution counts, provenance and eligibility.
 - [Gold DDL](sql/09_create_gold_tables.sql): profile/evidence snapshots and a CDF-enabled search-source table.
