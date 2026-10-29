@@ -35,3 +35,17 @@
   `databricks grants update table workspace.researchmatch_gold.researcher_profiles_index --json '{"changes":[{"principal":"<app SP application id>","add":["SELECT"]}]}'`.
 - **Stale running app:** after Gold changes its profile count, the deployed app's
   validation fails until the app code matching that Gold is deployed.
+
+## Traps seen on 2026-10-29
+
+- **Silver rebuild breaks the app until Gold is rebuilt.** The app requires Gold's
+  `silver_build_id` to equal the current Silver build (`matching_policy.py`
+  `source_snapshot`). Any Silver build, even one adding only pending candidates, must
+  be followed by Gold (same profile count), one index sync and `status`.
+- **Equal row counts do not prove a sync finished.** When the profile count is
+  unchanged, `indexed_row_count` already matches before the sync. Wait for notebook 12
+  `status` to succeed; `health_check.sh` only compares counts.
+- **Judge a run by its `RUN <id> SUCCESS|FAILED` line, never by grepping for a success
+  message.** The run export includes the notebook source, so the message text appears
+  even when the run failed.
+

@@ -105,7 +105,7 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
   paragraphs.
 - Commit messages use conventional prefixes (`feat:`, `fix:`, `docs:`).
 
-## Current state (as of 2026-10-28)
+## Current state (as of 2026-10-29)
 
 Pilot of 27 verified researcher identities after batch 05 (target: ~50 across
 Business and Technological Innovation). Bronze, Silver v2, Gold, AI Search index, notebooks
@@ -113,9 +113,13 @@ Business and Technological Innovation). Bronze, Silver v2, Gold, AI Search index
 The independent relevance review (`docs/matching_evaluation_review.md`) was **deferred by
 the user on 2026-10-28** (labeller and format still to choose). Coverage without new
 collection is exhausted (batch 06 lookup found nobody; see `docs/identity_review_batch_05.md`).
-**Next coverage needs a source refresh**, and identity evidence hashes include source record
-keys, so a refresh would make all accepted decisions stale. Design a re-attestation path
-(carry forward unchanged ORCID/author links with one bulk approval) before refreshing.
+A full refresh would make accepted decisions stale (evidence hashes include source record
+keys), so gaps are filled with **targeted supplementary batches** that never re-fetch
+verified authors or faculty pages (`collect_sources.py --source targeted`,
+`docs/data_collection_runbook.md` §4a). `targeted-20261029` is loaded: Silver
+`ce476f15…` (34 verified decisions, 0 stale), Gold `378f4211…` (27 profiles), index
+synced. Ten candidates await identity batches 06 (registry rule) and 07 (affiliation
+rule, needs the user's decision).
 
 **2026-10-27:** Free Edition had deleted endpoint `vs_endpoint_1`. It was recreated
 (same name, STANDARD) via notebook 12 run as one-time jobs; the orphaned index

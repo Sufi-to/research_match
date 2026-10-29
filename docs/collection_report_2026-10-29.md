@@ -1,7 +1,13 @@
 # Targeted collection report — `targeted-20261029`
 
-Status: **collected and verified locally.** Not yet uploaded to the Volume or loaded
-into Bronze. No identities are approved by collection.
+Status: **loaded and rebuilt (2026-10-29).** The batch was uploaded to
+`/Volumes/workspace/researchmatch_bronze/landing/targeted-20261029/` (29 files,
+checksums verified) and loaded by notebook 03 (10 authors, 566 works, 115 awards and
+80 funders inserted). Silver `ce476f15…` validated with **34 verified decisions, 0
+stale**, 90 pending; SQL 08 zero. Because the app requires Gold to match the current
+Silver, Gold was rebuilt with the same 27 profiles (`378f4211…`, 1,530 publications;
+SQL 11 zero), the index synced, and notebook 12 `status` and `test` succeeded. No
+identities are approved by collection.
 
 ## Why
 
