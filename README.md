@@ -104,7 +104,12 @@ passed for all 27. The same registry lookup found no further CTI researchers, so
 coverage needs a source refresh (which first needs a way to carry existing identity
 approvals forward). The independent relevance review using the
 [manual evaluation template](docs/matching_evaluation_review.md) is deferred by the
-user (2026-10-28).
+user (2026-10-28). On 2026-10-29 a targeted supplementary collection
+([report](docs/collection_report_2026-10-29.md)) filled evidence gaps without
+invalidating any approval, and batches 06–07 added nine researchers (four by the ORCID
+registry rule, five by a new, weaker affiliation rule). Gold `1f6f4254…` now holds **36
+profiles and 2,097 eligible publications**, with zero SQL 08/11 violations, the index
+synced and `health_check.sh` all PASS.
 
 ## Run offline tests
 

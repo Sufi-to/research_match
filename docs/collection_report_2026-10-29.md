@@ -7,7 +7,8 @@ checksums verified) and loaded by notebook 03 (10 authors, 566 works, 115 awards
 stale**, 90 pending; SQL 08 zero. Because the app requires Gold to match the current
 Silver, Gold was rebuilt with the same 27 profiles (`378f4211…`, 1,530 publications;
 SQL 11 zero), the index synced, and notebook 12 `status` and `test` succeeded. No
-identities are approved by collection.
+identities are approved by collection. The resulting candidates were then approved in batches 06 (4) and 07
+(5); the pilot now has **36 profiles** (Gold `1f6f4254…`).
 
 ## Why
 

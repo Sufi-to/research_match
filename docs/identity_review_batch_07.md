@@ -4,6 +4,13 @@ Status: **approved by the user on 2026-10-29** (plan "batches 06–07 with the r
 options"), including the new rule below. Accept records are written with SQL 19's
 guarded INSERT; see *Databricks steps*.
 
+**Recorded and rebuilt 2026-10-29:** batches 06 and 07 together, 9 accepts (the user
+ran the guarded INSERTs; Claude Code's auto-mode check blocked them for Claude). Silver
+`b372be7f…`: 36 verified researchers, 43 verified decisions, 0 stale; SQL 08 zero. Gold
+`1f6f4254…`: 36 profiles, 2,097 publications, 5,850 topic-evidence links; SQL 11 zero.
+One index sync; `health_check.sh` all PASS (index synced to source version 8);
+notebook 12 `status` and `test` succeeded. The user's in-app check is still to come.
+
 ## The affiliation rule (new, weaker than batches 02–06)
 
 These five profiles list no ORCID, and their ORCID records list **no employment**, so

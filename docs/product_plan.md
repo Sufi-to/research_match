@@ -46,7 +46,9 @@ state was verified in query history on 2026-10-28. All 275 tests pass locally. D
 recreate data/search resources unless they are missing. Broader profile coverage (next:
 batch 04), then independent relevance review, verified funding and validated team
 matching remain later milestones, not completed features. The app's suggested team is
-evidence coverage only.
+evidence coverage only. Batch 05 (ORCID registry, Business) took the pilot to 27, and on 2026-10-29 a
+targeted supplementary collection plus batches 06–07 took it to **36 profiles and 2,097
+publications** across both colleges (Gold `1f6f4254…`).
 
 The first implementation milestone is a pilot of approximately 50 researchers across
 Business and Technological Innovation: enter a topic, retrieve five relevant ZU

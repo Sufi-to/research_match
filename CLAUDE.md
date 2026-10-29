@@ -110,7 +110,7 @@ App UI tests are skipped (not failed) when `app/requirements.txt` isn't installe
 
 ## Current state (as of 2026-10-29)
 
-Pilot of 27 verified researcher identities after batch 05 (target: ~50 across
+Pilot of 36 verified researcher identities after batch 07 (target: ~50 across
 Business and Technological Innovation). Bronze, Silver v2, Gold, AI Search index, notebooks
 13/14 and the deployed app `researchmatch-pilot` are user-confirmed in Databricks.
 The independent relevance review (`docs/matching_evaluation_review.md`) was **deferred by
@@ -124,8 +124,10 @@ verified authors or faculty pages (`collect_sources.py --source targeted`,
 synced. The user approved batches 06 (registry rule; 4 people, with a documented
 `unusable_profile_orcid` exception for Dahu and Al Obeidat; Ian Michael excluded) and 07
 (new affiliation rule: ORCID on the OpenAlex author, last known ZU, at least 10
-ZU-affiliated authorships; 5 people). Recording the accepts (`sql/18`, `sql/19`) and the
-rebuild to 36 profiles are pending.
+ZU-affiliated authorships; 5 people); the user recorded them and the rebuild gave Silver
+`b372be7f…`, Gold `1f6f4254…`, **36 profiles**, 2,097 publications, index synced,
+health check all PASS. Remaining gaps (14 profiles) have no ORCID link: see the tier 3
+list in `docs/collection_report_2026-10-29.md`'s plan context.
 
 **2026-10-27:** Free Edition had deleted endpoint `vs_endpoint_1`. It was recreated
 (same name, STANDARD) via notebook 12 run as one-time jobs; the orphaned index
